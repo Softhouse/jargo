@@ -60,6 +60,9 @@
 		<module>common-test</module>
 		<module>jargo</module>
 	</modules>
+	<properties>
+		<guava.version>20.0</guava.version>
+	</properties>
 	<build>
 		<plugins>
 			<plugin>
@@ -246,7 +249,7 @@
 			<!-- The stuff that java should have had from the start -->
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>14.0.1</version>
+			<version>${guava.version}</version>
 		</dependency>
 		<dependency>
 			<!-- Annotations such as @Nonnull, @ThreadSafe etc -->
@@ -267,7 +270,7 @@
 			<!-- Includes NullPointerTester, MapTestSuiteBuilder and lots more -->
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava-testlib</artifactId>
-			<version>14.0.1</version>
+			<version>${guava.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
