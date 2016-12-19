@@ -20,7 +20,7 @@
 			<!-- Includes GcFinalization and lots more -->
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava-testlib</artifactId>
-			<version>14.0.1</version>
+			<version>${guava.version}</version>
 		</dependency>
 	</dependencies>
 	<build>
