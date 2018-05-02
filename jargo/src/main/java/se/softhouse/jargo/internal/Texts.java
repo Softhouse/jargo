@@ -1,21 +1,18 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo.internal;
 
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
-import static se.softhouse.common.strings.StringsUtil.TAB;
+import se.softhouse.common.strings.StringsUtil;
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentBuilder;
 import se.softhouse.jargo.ArgumentException;
@@ -24,7 +21,8 @@ import se.softhouse.jargo.CommandLineParser;
 import se.softhouse.jargo.StringParser;
 import se.softhouse.jargo.StringParsers;
 
-import com.google.common.base.Charsets;
+import static se.softhouse.common.strings.StringsUtil.NEWLINE;
+import static se.softhouse.common.strings.StringsUtil.TAB;
 
 /**
  * Contains {@link String#format(String, Object...)} ready strings.
@@ -76,7 +74,7 @@ public final class Texts
 
 		/**
 		 * Indicates that if a file called with what comes after the @ sign exists, arguments should
-		 * be read from it (in {@link Charsets#UTF_8}) before continuing on with the parsing.
+		 * be read from it (in {@link StringsUtil#UTF8}) before continuing on with the parsing.
 		 */
 		public static final String FILE_REFERENCE_PREFIX = "@";
 	}
@@ -172,7 +170,6 @@ public final class Texts
 		 * Parameters
 		 * 1st %s the disallowed value
 		 * 2nd %s description of valid values
-		 * 
 		 * For instance: "'5' is not between 1 and 4" (where 1st %s = 5, 2nd %s = between 1 and 4)
 		 */
 		public static final String DISALLOWED_VALUE = "'%s' is not %s";

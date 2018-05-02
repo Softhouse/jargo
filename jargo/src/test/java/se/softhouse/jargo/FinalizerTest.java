@@ -1,18 +1,25 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.Test;
+import se.softhouse.common.testlib.Explanation;
+import se.softhouse.jargo.functions.AddBar;
+import se.softhouse.jargo.functions.AddFoo;
+import se.softhouse.jargo.limiters.FooLimiter;
+
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -20,21 +27,8 @@ import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.limiters.FooLimiter.foos;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
-import java.util.Map;
-
-import org.junit.Test;
-
-import se.softhouse.common.testlib.Explanation;
-import se.softhouse.jargo.functions.AddBar;
-import se.softhouse.jargo.functions.AddFoo;
-import se.softhouse.jargo.limiters.FooLimiter;
-
-import com.google.common.base.Function;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
- * Tests for {@link ArgumentBuilder#finalizeWith(Function)}
+ * Tests for {@link ArgumentBuilder#finalizeWith(java.util.function.Function)}
  */
 public class FinalizerTest
 {
@@ -89,7 +83,7 @@ public class FinalizerTest
 		assertThat(stringArgument("-n").finalizeWith(new AddFoo()).usage()).contains("Default: foo");
 	}
 
-	@Test(expected = IllegalStateException.class)
+	@Test(expected = IllegalArgumentException.class)
 	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatDefaultValueIsFinalizedBeforeLimitIsChecked()
 	{

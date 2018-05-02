@@ -1,36 +1,30 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.strings;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Strings.repeat;
-import static com.google.common.collect.Iterables.isEmpty;
-import static se.softhouse.common.strings.StringsUtil.CloseMatch.BY_CLOSEST_MATCH_FIRST;
-
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.IntStream.of;
+import static se.softhouse.common.guavaextensions.Lists2.isEmpty;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
 
 /**
  * Utilities for working with {@link String}s
@@ -48,6 +42,11 @@ public final class StringsUtil
 	public static final String NEWLINE = System.getProperty("line.separator");
 
 	/**
+	 * A {@link Charset} for <a href="https://en.wikipedia.org/wiki/UTF-8">UTF8</a>
+	 */
+	public static final Charset UTF8 = Charset.forName("UTF-8");
+
+	/**
 	 * The <a href="http://en.wikipedia.org/wiki/ASCII_tab">ASCII tab</a> (\t) character
 	 */
 	public static final char TAB = '\t';
@@ -55,16 +54,18 @@ public final class StringsUtil
 	/**
 	 * @param numberOfSpaces to put in the created string
 	 * @return a string with numberOfSpaces in it
+	 * @deprecated use {@link #repeat(String, int)} instead
 	 */
 	@Nonnull
 	@CheckReturnValue
+	@Deprecated
 	public static String spaces(final int numberOfSpaces)
 	{
 		return repeat(" ", numberOfSpaces);
 	}
 
 	/**
-	 * Returns a "       ^" string pointing at the position indicated by {@code indexToPointAt}
+	 * Returns a " ^" string pointing at the position indicated by {@code indexToPointAt}
 	 */
 	public static String pointingAtIndex(int indexToPointAt)
 	{
@@ -93,7 +94,7 @@ public final class StringsUtil
 	 * m = average string length of the strings in {@code validOptions}
 	 * s = amount of validOptions
 	 *
-	 * complexity = n * m * s = O(n<sup>3</sup>)
+	 * complexity = n * m * s = O(n^3)
 	 *
 	 * So try to limit the number of valid options...
 	 *
@@ -106,8 +107,8 @@ public final class StringsUtil
 	@CheckReturnValue
 	public static String closestMatch(final String input, final Iterable<String> validOptions)
 	{
-		checkNotNull(input);
-		checkArgument(!isEmpty(validOptions), "No valid options to match the input against");
+		requireNonNull(input);
+		check(!isEmpty(validOptions), "No valid options to match the input against");
 
 		int shortestDistance = Integer.MAX_VALUE;
 		String bestGuess = null;
@@ -126,7 +127,8 @@ public final class StringsUtil
 	/**
 	 * <pre>
 	 * Returns a sorted {@link List} where the first entry is the {@link String} in {@code validOptions} that's closest in terms of
-	 * <a href="http://en.wikipedia.org/wiki/Levenshtein_distance">levenshtein distance</a> to {@code input}, or an empty list if no options within distance can be found.
+	 * <a href=
+	"http://en.wikipedia.org/wiki/Levenshtein_distance">levenshtein distance</a> to {@code input}, or an empty list if no options within distance can be found.
 	 *
 	 * For example when given "stats" as input and "status", "staging",
 	 * "stage" as validOptions, and 4 as maximumDistance, "status", "stage", "staging" is returned.
@@ -134,18 +136,17 @@ public final class StringsUtil
 	 * Only values with a distance less than or equal to {@code maximumDistance} will be included in the result.
 	 *
 	 * The returned list is <i>modifiable</i>.
-	 *
 	 * </pre>
 	 */
 	@Nonnull
 	@CheckReturnValue
 	public static List<String> closestMatches(final String input, final Iterable<String> validOptions, int maximumDistance)
 	{
-		checkNotNull(input);
+		requireNonNull(input);
 		if(isEmpty(validOptions))
 			return Collections.emptyList();
 
-		List<CloseMatch> closeMatches = Lists.newArrayList();
+		List<CloseMatch> closeMatches = new ArrayList<>();
 		for(String validOption : validOptions)
 		{
 			int distance = levenshteinDistance(input, validOption, maximumDistance + 1);
@@ -154,8 +155,9 @@ public final class StringsUtil
 				closeMatches.add(new CloseMatch(validOption, distance));
 			}
 		}
-		Collections.sort(closeMatches, BY_CLOSEST_MATCH_FIRST);
-		return Lists.transform(closeMatches, CloseMatch.GET_VALUE);
+		return closeMatches.stream().sorted((l, r) -> l.measuredDistance - r.measuredDistance) //
+				.map((i) -> i.value) //
+				.collect(Collectors.toList());
 	}
 
 	static final class CloseMatch
@@ -168,22 +170,6 @@ public final class StringsUtil
 			measuredDistance = distance;
 			value = validOption;
 		}
-
-		static final Comparator<CloseMatch> BY_CLOSEST_MATCH_FIRST = new Comparator<CloseMatch>(){
-			@Override
-			public int compare(CloseMatch left, CloseMatch right)
-			{
-				return left.measuredDistance - right.measuredDistance;
-			}
-		};
-
-		private static final Function<CloseMatch, String> GET_VALUE = new Function<CloseMatch, String>(){
-			@Override
-			public String apply(@Nonnull CloseMatch input)
-			{
-				return input.value;
-			}
-		};
 	}
 
 	/**
@@ -199,15 +185,16 @@ public final class StringsUtil
 
 	/**
 	 * Returns the <a href="http://en.wikipedia.org/wiki/Levenshtein_distance">levenshtein
-	 * distance</a> between {@code left} and {@code right}. If it's greater than maxDistance, maxDistance will be returned.
+	 * distance</a> between {@code left} and {@code right}. If it's greater than maxDistance,
+	 * maxDistance will be returned.
 	 *
 	 * @see #closestMatch(String, Iterable)
 	 */
 	public static int levenshteinDistance(final String left, final String right, final int maxDistance)
 	{
-		checkNotNull(left);
-		checkNotNull(right);
-		checkArgument(maxDistance >= 0);
+		requireNonNull(left);
+		requireNonNull(right);
+		check(maxDistance >= 0, "only zero or positive distance supported. Not ", maxDistance);
 
 		// a "cleaner" version of the org.apache.commons-lang algorithm which in
 		// turn was inspired by http://www.merriampark.com/ldjava.htm
@@ -218,7 +205,7 @@ public final class StringsUtil
 			return rightLength;
 		else if(rightLength == 0)
 			return leftLength;
-		else if(Math.abs(leftLength- rightLength) > maxDistance)
+		else if(Math.abs(leftLength - rightLength) > maxDistance)
 			return maxDistance;
 
 		int previousDistances[] = new int[leftLength + 1]; // 'previous' cost array, horizontally
@@ -248,8 +235,7 @@ public final class StringsUtil
 				{
 					deletionCost++;
 				}
-
-				distances[leftIndex] = Ints.min(insertionCost, editCost, deletionCost);
+				distances[leftIndex] = of(insertionCost, editCost, deletionCost).min().getAsInt();
 			}
 
 			// Swap current distance counts to 'previous row' distance counts
@@ -275,7 +261,7 @@ public final class StringsUtil
 	@CheckReturnValue
 	public static String numberToPositionalString(int number)
 	{
-		checkArgument(number >= 0, "Negative numbers don't have positions");
+		check(number >= 0, "Negative numbers don't have positions");
 		switch(number)
 		{
 		case 0:
@@ -306,9 +292,9 @@ public final class StringsUtil
 	 */
 	public static int indexOfNth(int nth, String needle, String haystack)
 	{
-		checkNotNull(haystack);
-		checkNotNull(needle);
-		checkArgument(nth > 0, "nth must be at least 1 (was %s)", nth);
+		requireNonNull(haystack);
+		requireNonNull(needle);
+		check(nth > 0, "nth must be at least 1 (was %s)", nth);
 		int occurencesFound = 0;
 		int index = -1;
 		while(occurencesFound < nth)
@@ -323,4 +309,19 @@ public final class StringsUtil
 		return index;
 	}
 
+	/**
+	 * @param part the string to repeat
+	 * @param times how many times to repeat
+	 * @return part, repeated {@code times} times
+	 */
+	@Nonnull
+	@CheckReturnValue
+	public static String repeat(String part, int times)
+	{
+		check(times >= 0, "Negative repitions is not supported. Was: ", times);
+		StringBuilder builder = new StringBuilder(part.length() * times);
+		for(int i = 0; i < times; i++)
+			builder.append(part);
+		return builder.toString();
+	}
 }

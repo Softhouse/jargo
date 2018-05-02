@@ -1,31 +1,16 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.testlib;
-
-import static org.fest.assertions.Assertions.assertThat;
-import static se.softhouse.common.testlib.ReflectionUtil.hasInstanceFields;
-import static se.softhouse.common.testlib.ReflectionUtil.isStatic;
-
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-
-import javax.annotation.concurrent.Immutable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -33,6 +18,18 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
+
+import javax.annotation.concurrent.Immutable;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+
+import static org.fest.assertions.Assertions.*;
+import static se.softhouse.common.testlib.ReflectionUtil.hasInstanceFields;
+import static se.softhouse.common.testlib.ReflectionUtil.isStatic;
 
 /**
  * The reasoning behind testing code that doesn't do anything is to achieve 100%
@@ -120,36 +117,26 @@ public final class UtilityClassTester
 
 	private static Predicate<Class<?>> lookingLikeAUtilityClass()
 	{
-		return new Predicate<Class<?>>(){
-			@Override
-			public boolean apply(Class<?> input)
+		return input -> {
+			for(Method method : input.getDeclaredMethods())
 			{
-				for(Method method : input.getDeclaredMethods())
+				if(method.isSynthetic())// Don't count injected code
 				{
-					if(method.isSynthetic())// Don't count injected code
-					{
-						continue;
-					}
-					if(!isStatic(method))
-						return false;
+					continue;
 				}
-				if(input.isInterface())
+				if(!isStatic(method))
 					return false;
-				if(hasInstanceFields(input))
-					return false;
-				return true;
 			}
+			if(input.isInterface())
+				return false;
+			if(hasInstanceFields(input))
+				return false;
+			return true;
 		};
 	}
 
 	private static Function<ClassInfo, Class<?>> loadClasses()
 	{
-		return new Function<ClassInfo, Class<?>>(){
-			@Override
-			public Class<?> apply(ClassInfo input)
-			{
-				return input.load();
-			}
-		};
+		return ClassInfo::load;
 	}
 }

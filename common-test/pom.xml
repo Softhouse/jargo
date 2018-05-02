@@ -1,13 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>se.softhouse</groupId>
 		<artifactId>jargo-parent</artifactId>
-		<version>0.2-SNAPSHOT</version>
+		<version>0.4.5-SNAPSHOT</version>
 	</parent>
 	<artifactId>common-test</artifactId>
-	<name>common test</name>
 	<description>Reusable classes to use from tests.</description>
 	<dependencies>
 		<dependency>
@@ -20,7 +18,13 @@
 			<!-- Includes GcFinalization and lots more -->
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava-testlib</artifactId>
-			<version>14.0.1</version>
+			<version>${guava.version}</version>
+		</dependency>
+		<dependency>
+			<!-- The stuff that java should have had from the start -->
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
 		</dependency>
 	</dependencies>
 	<build>
@@ -28,7 +32,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.5.201505241946</version>
+				<version>0.7.4.201502262128</version>
 				<executions>
 					<execution>
 						<!-- Not as strict requirements for test helping code -->
@@ -49,7 +53,7 @@
 										<limit>
 											<counter>METHOD</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>1.0</minimum>
+											<minimum>0.9</minimum>
 										</limit>
 										<limit>
 											<counter>INSTRUCTION</counter>

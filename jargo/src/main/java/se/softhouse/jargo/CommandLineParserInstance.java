@@ -1,28 +1,55 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
-import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
-import static com.google.common.collect.Sets.newLinkedHashSetWithExpectedSize;
+import se.softhouse.common.collections.CharacterTrie;
+import se.softhouse.common.guavaextensions.Lists2;
+import se.softhouse.common.strings.StringsUtil;
+import se.softhouse.jargo.ArgumentExceptions.UnexpectedArgumentException;
+import se.softhouse.jargo.StringParsers.InternalStringParser;
+import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
+import se.softhouse.jargo.internal.Texts.UsageTexts;
+import se.softhouse.jargo.internal.Texts.UserErrors;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import static java.util.Collections.emptySet;
+import static se.softhouse.common.guavaextensions.Lists2.size;
 import static se.softhouse.common.guavaextensions.Preconditions2.checkNulls;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
+import static se.softhouse.common.guavaextensions.Sets2.union;
 import static se.softhouse.common.strings.Describables.format;
 import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.strings.StringsUtil.TAB;
@@ -36,40 +63,6 @@ import static se.softhouse.jargo.ArgumentExceptions.forUnallowedRepetitionArgume
 import static se.softhouse.jargo.ArgumentExceptions.withMessage;
 import static se.softhouse.jargo.ArgumentExceptions.wrapException;
 import static se.softhouse.jargo.CommandLineParser.US_BY_DEFAULT;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
-import javax.annotation.concurrent.ThreadSafe;
-
-import se.softhouse.common.collections.CharacterTrie;
-import se.softhouse.common.strings.StringsUtil;
-import se.softhouse.jargo.ArgumentExceptions.UnexpectedArgumentException;
-import se.softhouse.jargo.StringParsers.InternalStringParser;
-import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
-import se.softhouse.jargo.internal.Texts.UsageTexts;
-import se.softhouse.jargo.internal.Texts.UserErrors;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.collect.UnmodifiableIterator;
-import com.google.common.io.Files;
 
 /**
  * A snapshot view of a {@link CommandLineParser} configuration.
@@ -115,12 +108,12 @@ final class CommandLineParserInstance
 
 	CommandLineParserInstance(Iterable<Argument<?>> argumentDefinitions, ProgramInformation information, Locale locale, boolean isCommandParser)
 	{
-		int nrOfArgumentsToHandle = Iterables.size(argumentDefinitions);
-		this.indexedArguments = newArrayListWithCapacity(nrOfArgumentsToHandle);
+		int nrOfArgumentsToHandle = size(argumentDefinitions);
+		this.indexedArguments = new ArrayList<>(nrOfArgumentsToHandle);
 		this.namedArguments = new NamedArguments(nrOfArgumentsToHandle);
 		this.specialArguments = new SpecialArguments();
-		this.helpArguments = newHashMap();
-		this.allArguments = newLinkedHashSetWithExpectedSize(nrOfArgumentsToHandle);
+		this.helpArguments = new HashMap<>();
+		this.allArguments = new LinkedHashSet<>(nrOfArgumentsToHandle);
 
 		this.programInformation = information;
 		this.locale = locale;
@@ -153,7 +146,7 @@ final class CommandLineParserInstance
 			}
 		}
 		boolean added = allArguments().add(definition);
-		checkArgument(added, ProgrammaticErrors.UNIQUE_ARGUMENT, definition);
+		check(added, ProgrammaticErrors.UNIQUE_ARGUMENT, definition);
 	}
 
 	private void addNamedArgumentDefinition(final String name, final Argument<?> definition)
@@ -176,7 +169,7 @@ final class CommandLineParserInstance
 		{
 			helpArguments.put(name, definition);
 		}
-		checkArgument(oldDefinition == null, ProgrammaticErrors.NAME_COLLISION, name);
+		check(oldDefinition == null, ProgrammaticErrors.NAME_COLLISION, name);
 	}
 
 	/**
@@ -199,8 +192,8 @@ final class CommandLineParserInstance
 				firstOptionalIndexedArgument = i;
 			}
 		}
-		checkArgument(	lastRequiredIndexedArgument <= firstOptionalIndexedArgument, ProgrammaticErrors.REQUIRED_ARGUMENTS_BEFORE_OPTIONAL,
-						firstOptionalIndexedArgument, lastRequiredIndexedArgument);
+		check(	lastRequiredIndexedArgument <= firstOptionalIndexedArgument, ProgrammaticErrors.REQUIRED_ARGUMENTS_BEFORE_OPTIONAL,
+				firstOptionalIndexedArgument, lastRequiredIndexedArgument);
 	}
 
 	/**
@@ -208,13 +201,12 @@ final class CommandLineParserInstance
 	 */
 	private void verifyUniqueMetasForRequiredAndIndexedArguments()
 	{
-		Set<String> metasForRequiredAndIndexedArguments = newHashSetWithExpectedSize(indexedArguments.size());
-		for(Argument<?> indexedArgument : filter(indexedArguments, IS_REQUIRED))
-		{
+		Set<String> metasForRequiredAndIndexedArguments = new HashSet<>(indexedArguments.size());
+		indexedArguments.stream().filter(IS_REQUIRED).forEach(indexedArgument -> {
 			String meta = indexedArgument.metaDescriptionInRightColumn();
 			boolean metaWasUnique = metasForRequiredAndIndexedArguments.add(meta);
-			checkArgument(metaWasUnique, ProgrammaticErrors.UNIQUE_METAS, meta);
-		}
+			check(metaWasUnique, ProgrammaticErrors.UNIQUE_METAS, meta);
+		});
 	}
 
 	/**
@@ -222,8 +214,8 @@ final class CommandLineParserInstance
 	 */
 	private void verifyThatOnlyOneArgumentIsOfVariableArity()
 	{
-		Collection<Argument<?>> indexedVariableArityArguments = filter(indexedArguments, IS_OF_VARIABLE_ARITY);
-		checkArgument(indexedVariableArityArguments.size() <= 1, ProgrammaticErrors.SEVERAL_VARIABLE_ARITY_PARSERS, indexedVariableArityArguments);
+		Collection<Argument<?>> indexedVariableArityArguments = indexedArguments.stream().filter(IS_OF_VARIABLE_ARITY).collect(Collectors.toList());
+		check(indexedVariableArityArguments.size() <= 1, ProgrammaticErrors.SEVERAL_VARIABLE_ARITY_PARSERS, indexedVariableArityArguments);
 	}
 
 	@Nonnull
@@ -367,8 +359,8 @@ final class CommandLineParserInstance
 		String currentArgument = arguments.current();
 		if(startsWithAndHasMore(currentArgument, "-"))
 		{
-			List<Character> givenCharacters = Lists.charactersOf(currentArgument.substring(1));
-			Set<Argument<?>> foundOptions = newLinkedHashSetWithExpectedSize(givenCharacters.size());
+			List<Character> givenCharacters = Lists2.charactersOf(currentArgument.substring(1));
+			Set<Argument<?>> foundOptions = new LinkedHashSet<>(givenCharacters.size());
 			Argument<?> lastOption = null;
 			for(Character optionName : givenCharacters)
 			{
@@ -422,24 +414,23 @@ final class CommandLineParserInstance
 		return null;
 	}
 
+	private static final int ONLY_REALLY_CLOSE_MATCHES = 4;
+
 	/**
 	 * Suggests probable, valid, alternatives for a faulty argument, based on the
 	 * {@link StringsUtil#levenshteinDistance(String, String)}
 	 */
 	private void guessAndSuggestIfCloseMatch(ArgumentIterator arguments, ParsedArguments holder) throws ArgumentException
 	{
-		Set<String> availableArguments = Sets.union(holder.nonParsedArguments(), arguments.nonParsedArguments());
+		Set<String> availableArguments = union(holder.nonParsedArguments(), arguments.nonParsedArguments());
 
 		if(!availableArguments.isEmpty())
 		{
 			List<String> suggestions = StringsUtil.closestMatches(arguments.current(), availableArguments, ONLY_REALLY_CLOSE_MATCHES);
 			if(!suggestions.isEmpty())
-				throw withMessage(format(UserErrors.SUGGESTION, arguments.current(), NEW_LINE_AND_TAB.join(suggestions)));
+				throw withMessage(format(UserErrors.SUGGESTION, arguments.current(), String.join(NEWLINE + TAB, suggestions)));
 		}
 	}
-
-	private static final int ONLY_REALLY_CLOSE_MATCHES = 4;
-	private static final Joiner NEW_LINE_AND_TAB = Joiner.on(NEWLINE + TAB);
 
 	private <T> void limitArgument(@Nonnull Argument<T> arg, ParsedArguments holder, Locale inLocale) throws ArgumentException
 	{
@@ -538,7 +529,7 @@ final class CommandLineParserInstance
 	 * invocation.
 	 */
 	@NotThreadSafe
-	static final class ArgumentIterator extends UnmodifiableIterator<String>
+	static final class ArgumentIterator implements Iterator<String>
 	{
 		private final List<String> arguments;
 
@@ -699,7 +690,8 @@ final class CommandLineParserInstance
 				{
 					try
 					{
-						appendArgumentsAtCurrentPosition(Files.readLines(fileWithArguments, Charsets.UTF_8));
+						List<String> lines = Files.readAllLines(fileWithArguments.toPath(), StringsUtil.UTF8);
+						appendArgumentsAtCurrentPosition(lines);
 					}
 					catch(IOException errorWhileReadingFile)
 					{
@@ -771,7 +763,7 @@ final class CommandLineParserInstance
 
 		NamedArguments(int expectedSize)
 		{
-			namedArguments = newHashMapWithExpectedSize(expectedSize);
+			namedArguments = new HashMap<>(expectedSize);
 		}
 
 		Argument<?> put(String name, Argument<?> definition)

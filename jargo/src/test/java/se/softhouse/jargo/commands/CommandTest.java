@@ -1,16 +1,14 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo.commands;
 
@@ -30,6 +28,10 @@ import java.util.List;
 
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
+import se.softhouse.common.guavaextensions.Predicates2;
+import se.softhouse.common.guavaextensions.Suppliers2;
 import se.softhouse.common.strings.Describable;
 import se.softhouse.common.strings.Describers;
 import se.softhouse.jargo.Argument;
@@ -43,10 +45,6 @@ import se.softhouse.jargo.commands.Build.BuildTarget;
 import se.softhouse.jargo.commands.Commit.Repository;
 import se.softhouse.jargo.commands.Commit.Revision;
 import se.softhouse.jargo.internal.Texts.UserErrors;
-
-import com.google.common.base.Predicates;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.Lists;
 
 /**
  * Tests for subclassing {@link Command}
@@ -190,6 +188,14 @@ public class CommandTest
 	}
 
 	@Test
+	public void testThatArgListWorksForCommand() throws Exception
+	{
+		CommandWithArguments command = new CommandWithArguments();
+		CommandLineParser.withCommands(command).parse("main", "c");
+		assertThat(CommandWithArguments.wasExecuted).isTrue();
+	}
+
+	@Test
 	public void testThatRequiredArgumentsAreResetBetweenParsings() throws ArgumentException
 	{
 		String[] invalidArgs = {"commit"};
@@ -248,8 +254,8 @@ public class CommandTest
 		}
 		catch(ArgumentException missingSecondParameterForIndexedArgument)
 		{
-			assertThat(missingSecondParameterForIndexedArgument).hasMessage(String.format(	UserErrors.MISSING_NTH_PARAMETER, "second", "<integer>",
-																							"two_args"));
+			assertThat(missingSecondParameterForIndexedArgument)
+					.hasMessage(String.format(UserErrors.MISSING_NTH_PARAMETER, "second", "<integer>", "two_args"));
 		}
 	}
 
@@ -277,8 +283,8 @@ public class CommandTest
 		}
 		catch(ArgumentException missingSecondParameterForIndexedArgument)
 		{
-			assertThat(missingSecondParameterForIndexedArgument).hasMessage(String.format(	UserErrors.MISSING_NTH_PARAMETER, "second", "<integer>",
-																							"two_args"));
+			assertThat(missingSecondParameterForIndexedArgument)
+					.hasMessage(String.format(UserErrors.MISSING_NTH_PARAMETER, "second", "<integer>", "two_args"));
 		}
 	}
 
@@ -546,7 +552,7 @@ public class CommandTest
 		}
 		try
 		{
-			builder.defaultValueSupplier(Suppliers.<ParsedArguments>ofInstance(null));
+			builder.defaultValueSupplier(Suppliers2.ofInstance(null));
 			fail("method should throw as it's deprecated");
 		}
 		catch(IllegalStateException expected)
@@ -562,7 +568,7 @@ public class CommandTest
 		}
 		try
 		{
-			builder.limitTo(Predicates.alwaysFalse());
+			builder.limitTo(Predicates2.alwaysFalse());
 			fail("method should throw as it's deprecated");
 		}
 		catch(IllegalStateException expected)

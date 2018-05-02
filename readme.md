@@ -1,8 +1,8 @@
 # Jargo
 A tool to ease the handling of program arguments/options  
-[![Build Status](https://travis-ci.org/Softhouse/jargo.png)](https://travis-ci.org/Softhouse/jargo)  [Jenkins](https://jontejj.ci.cloudbees.com/job/jargo/)
+[![Build Status](https://travis-ci.org/jontejj/jargo.png)](https://travis-ci.org/jontejj/jargo)
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/se.softhouse/se.softhouse/badge.svg?style=flat)](http://search.maven.org/#search|ga|1|a%3Ajargo)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/se.softhouse/jargo/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/se.softhouse/jargo)
 
 # Most basic usage
 ```java
@@ -38,25 +38,35 @@ catch(ArgumentException exception)
 	System.exit(1);
 }
 ```
-For more examples see the [Javadoc](http://softhouse.github.com/jargo/javadoc/jargo/)
+For more examples see the [Javadoc](http://jontejj.github.io/jargo/javadoc/jargo/)
 
 # Dependency
 #### Jargo
      <dependency>
        <groupId>se.softhouse</groupId>
        <artifactId>jargo</artifactId>
-       <version>0.1.1</version>
+       <version>0.4.4</version>
      </dependency>
   
-#### Common-test (optional) [Javadoc](http://softhouse.github.com/jargo/javadoc/common-test/)
+#### Common-test (optional) [Javadoc](http://jontejj.github.io/jargo/javadoc/common-test/)
      <dependency>
       <groupId>se.softhouse</groupId>
       <artifactId>common-test</artifactId>
-      <version>0.1.1</version>
+      <version>0.4.4</version>
   </dependency>
+  
+# JDK compatiblity
+## JDK 6
+Version <= 0.4.1 (used Guava)
+## JDK 8
+From version 0.4.2 and onwards this library requires jdk 8 and Guava was removed as a dependency. This made this library even more lightweight (179K, no external dependencies). Especially useful as command line tools are often distributed, so the small file-size can be useful. If you want to go even further in reducing the filesize of your program, you can try out [Proguard](https://www.guardsquare.com/en/proguard)
+
 
 # Bugs/Questions
-[Issues](https://github.com/Softhouse/jargo/issues)  
+[Stack Overflow](https://stackoverflow.com/tags/jargo)
+
+[Issues](https://github.com/jontejj/jargo/issues)  
+
 [QA forum](https://groups.google.com/forum/?fromgroups=&hl=en#!forum/jargo)
 
 # Rationale
@@ -87,8 +97,5 @@ For more examples see the [Javadoc](http://softhouse.github.com/jargo/javadoc/ja
     Argument<List<List<Integer>>> numbers = Arguments.integerArgument("--numbers").arity(2).repeated().build();
     ```
 
-5. Because I love [Guava](https://code.google.com/p/guava-libraries/) and wanted an argument parsing
-    library well integrated with it (more to come in this department)
-
-6. Reflection makes it hard to analyze references to classes/methods and it
+5. Reflection makes it hard to analyze references to classes/methods and it
     often requires a granted suppressAccessChecks from the SecurityManager, this may not be wanted. No reflection is used in jargo.

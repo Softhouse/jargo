@@ -5,5 +5,5 @@ AnyEdit Tools
 EclEmma
 Maven Integration for eclipse (m2eclipse)
 
-NOTE: As the workspace mechanic tasks modifies workspace global settings it's recommended to develop 
-jargo in a fresh workspace.
+NOTE: As the workspace mechanic tasks modifies workspace global settings it's 
+recommended to develop in a fresh workspace.

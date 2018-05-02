@@ -2,13 +2,10 @@ Usage: commandsWithArguments [Arguments]
 
 Arguments:
 build      Builds a target
-           
 clean      Cleans a target
-           
 commit     Commits to a repository
            Arguments: 
            --amend              Default: disabled
            --author=<string>    <string>: any string [Required]
            <path> ...           <path>: a file path
                                 Default: Empty list
-           

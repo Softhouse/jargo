@@ -1,16 +1,14 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo.api;
 
@@ -26,15 +24,14 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
 
+import com.google.common.base.Ascii;
+import com.google.common.base.Charsets;
+
 import se.softhouse.common.strings.Describers;
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.CommandLineParser;
 import se.softhouse.jargo.ParsedArguments;
-
-import com.google.common.base.Ascii;
-import com.google.common.base.Charsets;
-import com.google.common.collect.Range;
 
 public class GreetingServer
 {
@@ -42,7 +39,7 @@ public class GreetingServer
 	static final Argument<Boolean> ENABLE_LOGGING = optionArgument("-l", "--enable-logging").description("Output debug information to standard out")
 			.build();
 
-	static final Argument<List<Integer>> PORTS = integerArgument("-p", "--listen-port").limitTo(Range.closed(0, 65536)).defaultValue(10000)
+	static final Argument<List<Integer>> PORTS = integerArgument("-p", "--listen-port").limitTo(n -> n >= 0 && n <= 65536).defaultValue(10000)
 			.defaultValueDescriber(Describers.toStringDescriber()).repeated().description("The port clients should connect to")
 			.metaDescription("port").build();
 
@@ -94,6 +91,7 @@ public class GreetingServer
 					writer.append(greetingPhrase).append((char) Ascii.LF);
 				}
 				writer.close();
+				server.close();
 			}
 		}
 		catch(IOException e)

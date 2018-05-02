@@ -1,16 +1,14 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.testlib;
 
@@ -58,14 +56,14 @@ public final class Locales
 	 *  Makes it possible to test invalid usages of {@link Locale#getDefault()} in a synchronized
 	 *  manner making sure that test cases don't fail suddenly when they are run concurrently.
 	 *  I.e a pipelined version of {@link Locale#getDefault()}.
-	 * 
+	 *
 	 * <b>Note:</b> Don't forget to call {@link #resetDefaultLocale()} when you're done with using
 	 * the {@link Locale#getDefault()} method. Otherwise other threads waiting to use it may starve.
+	 * </pre>
 	 * 
 	 * @param locale the locale {@link Locale#getDefault()} should return
 	 * @throws InterruptedException if the current thread is interrupted
 	 * @return the previous default locale
-	 * </pre>
 	 */
 	public static Locale setDefault(Locale locale) throws InterruptedException
 	{
@@ -80,8 +78,8 @@ public final class Locales
 			}
 			catch(InterruptedException interrupt)
 			{
-				throw new InterruptedException(format(	"%s waited on %s to finish using %s but got interrupted", currentThread().getName(), LOCK,
-														Locale.getDefault()));
+				throw new InterruptedException(
+						format("%s waited on %s to finish using %s but got interrupted", currentThread().getName(), LOCK, Locale.getDefault()));
 			}
 		}
 
@@ -100,7 +98,7 @@ public final class Locales
 	/**
 	 * Resets {@link Locale#getDefault()} to what it was when {@link #setDefault(Locale)} was
 	 * called. Should be called after you're done with using {@link Locale#getDefault()}.
-	 * 
+	 *
 	 * @return the default {@link Locale} that was set
 	 * @throws IllegalStateException if this thread wasn't the last one to successfully call
 	 *             {@link #setDefault(Locale)}

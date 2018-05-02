@@ -9,6 +9,4 @@ main     A command with an argument and a subcommand that takes an argument as
                         <integer>           <integer>: -2,147,483,648 to 2,147,483,647 [Required]
                         --bool <boolean>    <boolean>: true or false
                                             Default: false
-                        cmd                 
-                        
-         
+                        cmd 

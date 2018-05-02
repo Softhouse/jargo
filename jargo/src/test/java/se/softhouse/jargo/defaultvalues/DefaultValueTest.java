@@ -1,18 +1,38 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo.defaultvalues;
+
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.Test;
+import se.softhouse.common.strings.Describer;
+import se.softhouse.common.testlib.Explanation;
+import se.softhouse.jargo.Argument;
+import se.softhouse.jargo.ArgumentBuilder;
+import se.softhouse.jargo.ArgumentBuilder.DefaultArgumentBuilder;
+import se.softhouse.jargo.ArgumentException;
+import se.softhouse.jargo.ForwardingStringParser;
+import se.softhouse.jargo.StringParser;
+import se.softhouse.jargo.Usage;
+import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
+import se.softhouse.jargo.internal.Texts.UserErrors;
+import se.softhouse.jargo.stringparsers.custom.NullReturningParser;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -29,32 +49,6 @@ import static se.softhouse.jargo.limiters.FooLimiter.foos;
 import static se.softhouse.jargo.stringparsers.custom.ObjectParser.objectArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 import static se.softhouse.jargo.utils.ExpectedTexts.expected;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import org.junit.Test;
-
-import se.softhouse.common.strings.Describer;
-import se.softhouse.common.testlib.Explanation;
-import se.softhouse.jargo.Argument;
-import se.softhouse.jargo.ArgumentBuilder;
-import se.softhouse.jargo.ArgumentBuilder.DefaultArgumentBuilder;
-import se.softhouse.jargo.ArgumentException;
-import se.softhouse.jargo.ForwardingStringParser;
-import se.softhouse.jargo.StringParser;
-import se.softhouse.jargo.Usage;
-import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
-import se.softhouse.jargo.internal.Texts.UserErrors;
-import se.softhouse.jargo.stringparsers.custom.NullReturningParser;
-
-import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Range;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests for {@link StringParser#defaultValue()}, {@link ArgumentBuilder#defaultValue(Object)} and
@@ -75,7 +69,7 @@ public class DefaultValueTest
 		assertThat(numbers).isEmpty();
 	}
 
-	@Test(expected = IllegalStateException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testThatInvalidDefaultValueFromStringParserIsInvalidated() throws ArgumentException
 	{
 		withParser(new ForwardingStringParser.SimpleForwardingStringParser<String>(stringParser()){
@@ -96,7 +90,7 @@ public class DefaultValueTest
 			stringArgument("-n").defaultValueSupplier(new BarSupplier()).limitTo(foos()).parse();
 			fail("only foo should be allowed, not bar");
 		}
-		catch(IllegalStateException e)
+		catch(IllegalArgumentException e)
 		{
 			assertThat(e).hasMessage(format(ProgrammaticErrors.INVALID_DEFAULT_VALUE, format(UserErrors.DISALLOWED_VALUE, "bar", "foo")));
 		}
@@ -106,7 +100,7 @@ public class DefaultValueTest
 	public void testThatDefaultValueSupplierIsNotUsedWhenArgumentIsGiven() throws ArgumentException
 	{
 		ProfilingSupplier profiler = new ProfilingSupplier();
-		int one = integerArgument().defaultValueSupplier(profiler).limitTo(Range.closed(0, 10)).parse("1");
+		int one = integerArgument().defaultValueSupplier(profiler).parse("1");
 		assertThat(one).isEqualTo(1);
 		assertThat(profiler.callsToGet).isZero();
 	}
@@ -121,7 +115,7 @@ public class DefaultValueTest
 			stringArgument("-n").defaultValue("bar").limitTo(foos()).repeated().build();
 			fail("only foo should be allowed, not bar");
 		}
-		catch(IllegalStateException e)
+		catch(IllegalArgumentException e)
 		{
 			assertThat(e).hasMessage(format(ProgrammaticErrors.INVALID_DEFAULT_VALUE, format(UserErrors.DISALLOWED_VALUE, "bar", "foo")));
 			assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class);

@@ -1,18 +1,29 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo.limiters;
+
+import com.google.common.collect.Range;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.Test;
+import se.softhouse.common.testlib.Explanation;
+import se.softhouse.jargo.Argument;
+import se.softhouse.jargo.ArgumentBuilder;
+import se.softhouse.jargo.ArgumentException;
+import se.softhouse.jargo.Usage;
+import se.softhouse.jargo.stringparsers.custom.Port;
+import se.softhouse.jargo.stringparsers.custom.PortParser;
+
+import java.util.function.Predicate;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
@@ -23,21 +34,6 @@ import static se.softhouse.jargo.limiters.FooLimiter.foos;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 import static se.softhouse.jargo.utils.ExpectedTexts.expected;
 
-import org.junit.Test;
-
-import se.softhouse.common.testlib.Explanation;
-import se.softhouse.jargo.Argument;
-import se.softhouse.jargo.ArgumentBuilder;
-import se.softhouse.jargo.ArgumentException;
-import se.softhouse.jargo.Usage;
-import se.softhouse.jargo.stringparsers.custom.Port;
-import se.softhouse.jargo.stringparsers.custom.PortParser;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Range;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Test for {@link ArgumentBuilder#limitTo(Predicate)}
  */
@@ -46,7 +42,7 @@ public class LimiterTest
 	@Test
 	public void testRangeLimiter() throws ArgumentException
 	{
-		Argument<Integer> limitedNumber = integerArgument().limitTo(Range.closed(0, 4)).build();
+		Argument<Integer> limitedNumber = integerArgument().limitTo(java(Range.closed(0, 4))).build();
 		try
 		{
 			limitedNumber.parse("5");
@@ -58,7 +54,7 @@ public class LimiterTest
 		}
 		assertThat(limitedNumber.parse("4")).isEqualTo(4);
 
-		assertThat(integerArgument().limitTo(Range.closed(1, 3)).defaultValue(1).parse("2")).isEqualTo(2);
+		assertThat(integerArgument().limitTo(java(Range.closed(1, 3))).defaultValue(1).parse("2")).isEqualTo(2);
 	}
 
 	@Test
@@ -66,12 +62,12 @@ public class LimiterTest
 	{
 		try
 		{
-			integerArgument("-n").limitTo(Range.closed(1, 2)).limitTo(Range.closed(0, 4)).parse("-n", "3");
+			integerArgument("-n").limitTo(java(Range.closed(1, 2))).limitTo(java(Range.closed(0, 4))).parse("-n", "3");
 			fail("3 should not be allowed, limiter override lost previously set limiter");
 		}
 		catch(ArgumentException expected)
 		{
-			assertThat(expected).hasMessage("'3' is not And([1‥2],[0‥4])");
+			assertThat(expected).hasMessage("'3' is not AND([1..2], [0..4])");
 		}
 	}
 
@@ -111,7 +107,7 @@ public class LimiterTest
 		stringArgument("-n").separator("=").limitTo(foos()).splitWith(",").parse("-n=foo,bar");
 	}
 
-	@Test(expected = IllegalStateException.class)
+	@Test(expected = IllegalArgumentException.class)
 	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatDefaultValuesAreLimited()
 	{
@@ -130,7 +126,7 @@ public class LimiterTest
 	public void testThatRangeLimiterDoesNotCallToStringOnComparedObjectsInVain() throws ArgumentException
 	{
 		Port min = new Port(1);
-		Argument<Port> portArgument = withParser(new PortParser()).limitTo(Range.closed(min, Port.MAX)).build();
+		Argument<Port> portArgument = withParser(new PortParser()).limitTo(java(Range.closed(min, Port.MAX))).build();
 		try
 		{
 			portArgument.parse("-1");
@@ -164,13 +160,8 @@ public class LimiterTest
 		final IllegalArgumentException originalException = new IllegalArgumentException();
 		try
 		{
-			integerArgument().limitTo(new Predicate<Integer>(){
-
-				@Override
-				public boolean apply(Integer input)
-				{
-					throw originalException;
-				}
+			integerArgument().limitTo(input -> {
+				throw originalException;
 			}).parse("1");
 			fail("Limiter should have propagated originalException");
 		}
@@ -178,5 +169,22 @@ public class LimiterTest
 		{
 			assertThat(expected.getCause()).isSameAs(originalException);
 		}
+	}
+
+	public static <T> Predicate<T> java(com.google.common.base.Predicate<T> guava)
+	{
+		return new Predicate<T>(){
+			@Override
+			public boolean test(T t)
+			{
+				return guava.apply(t);
+			}
+
+			@Override
+			public String toString()
+			{
+				return guava.toString();
+			}
+		};
 	}
 }

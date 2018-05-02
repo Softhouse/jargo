@@ -1,16 +1,14 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.guavaextensions;
 
@@ -19,11 +17,10 @@ import static org.fest.assertions.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.junit.Test;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 
@@ -35,13 +32,21 @@ public class Suppliers2Test
 	@Test
 	public void testThatInstanceOfIsSuppliedAlready()
 	{
-		assertThat(Suppliers2.isSuppliedAlready(Suppliers.ofInstance("foo"))).isTrue();
+		assertThat(Suppliers2.isSuppliedAlready(Suppliers2.ofInstance("foo"))).isTrue();
+	}
+
+	@Test
+	public void testThatRepeatedMemoizeReturnsSameMemoizeInstance()
+	{
+		Supplier<String> first = Suppliers2.memoize(Suppliers2.ofInstance("foo"));
+		Supplier<String> second = Suppliers2.memoize(first);
+		assertThat(second).isSameAs(first);
 	}
 
 	@Test
 	public void testThatInstanceOfIsSuppliedAlreadyForList()
 	{
-		Supplier<List<String>> listSupplier = Suppliers2.ofRepeatedElements(Suppliers.ofInstance("foo"), 3);
+		Supplier<List<String>> listSupplier = Suppliers2.ofRepeatedElements(Suppliers2.ofInstance("foo"), 3);
 		assertThat(Suppliers2.isSuppliedAlready(listSupplier)).isTrue();
 	}
 
@@ -51,13 +56,7 @@ public class Suppliers2Test
 		assertThat(Suppliers2.isSuppliedAlready(FOO_SUPPLIER)).isFalse();
 	}
 
-	private static final Supplier<String> FOO_SUPPLIER = new Supplier<String>(){
-		@Override
-		public String get()
-		{
-			return "foo";
-		}
-	};
+	private static final Supplier<String> FOO_SUPPLIER = () -> "foo";
 
 	@Test
 	public void testThatInstanceOfIsNotSuppliedForArbitrarySupplierInList()

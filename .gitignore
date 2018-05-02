@@ -5,3 +5,4 @@ target/
 .settings/
 .DS_Store
 jacoco.exec
+id_rsa_travis

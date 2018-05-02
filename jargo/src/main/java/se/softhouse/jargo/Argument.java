@@ -1,35 +1,16 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo;
-
-import static com.google.common.base.Predicates.alwaysTrue;
-import static java.util.Arrays.asList;
-import static se.softhouse.common.strings.Describables.format;
-import static se.softhouse.jargo.ArgumentExceptions.withMessage;
-
-import java.text.CollationKey;
-import java.text.Collator;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import se.softhouse.common.guavaextensions.Suppliers2;
 import se.softhouse.common.strings.Describable;
@@ -39,10 +20,25 @@ import se.softhouse.jargo.StringParsers.InternalStringParser;
 import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
 import se.softhouse.jargo.internal.Texts.UserErrors;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import java.text.CollationKey;
+import java.text.Collator;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+
+import static java.util.Arrays.asList;
+import static se.softhouse.common.guavaextensions.Predicates2.alwaysTrue;
+import static se.softhouse.common.strings.Describables.format;
+import static se.softhouse.jargo.ArgumentExceptions.withMessage;
 
 /**
  * <pre>
@@ -52,7 +48,6 @@ import com.google.common.base.Supplier;
  * used by the {@link CommandLineParser} to parse strings (typically from the command line).
  * 
  * @param <T> the type of values this {@link Argument} is configured to parse
- * 
  * </pre>
  */
 @Immutable
@@ -109,13 +104,7 @@ public final class Argument<T>
 		}
 		else
 		{
-			this.defaultValue = new Supplier<T>(){
-				@Override
-				public T get()
-				{
-					return parser.defaultValue();
-				}
-			};
+			this.defaultValue = (Supplier<T>) parser::defaultValue;
 		}
 
 		// Fail-fast for invalid default values that are created already
@@ -210,7 +199,7 @@ public final class Argument<T>
 	@Nonnull
 	String metaDescriptionInLeftColumn()
 	{
-		String meta = metaDescription.or(parser.metaDescriptionInLeftColumn(this));
+		String meta = metaDescription.orElseGet(() -> parser.metaDescriptionInLeftColumn(this));
 		if(!isPropertyMap() && !isIndexed())
 		{
 			meta = separator + meta;
@@ -221,29 +210,34 @@ public final class Argument<T>
 	@Nonnull
 	String metaDescriptionInRightColumn()
 	{
-		return metaDescription.or(parser.metaDescriptionInRightColumn(this));
+		return metaDescription.orElseGet(() -> parser.metaDescriptionInRightColumn(this));
 	}
 
 	void checkLimit(@Nullable final T value) throws ArgumentException
 	{
-		if(!limiter.apply(value))
+		if(!limiter.test(value))
 			throw withMessage(format(UserErrors.DISALLOWED_VALUE, value, limiter));
 	}
 
 	private void checkLimitForDefaultValue(@Nullable final T value)
 	{
+		boolean error = false;
 		try
 		{
-			if(!limiter.apply(value))
+			if(!limiter.test(value))
 			{
-				String unallowedValue = String.format(UserErrors.DISALLOWED_VALUE, value, limiter);
-				throw new IllegalStateException(String.format(ProgrammaticErrors.INVALID_DEFAULT_VALUE, unallowedValue));
+				error = true;
 			}
 		}
 		catch(IllegalArgumentException invalidDefaultValue)
 		{
-			throw new IllegalStateException(String.format(ProgrammaticErrors.INVALID_DEFAULT_VALUE, invalidDefaultValue.getMessage()),
+			throw new IllegalArgumentException(String.format(ProgrammaticErrors.INVALID_DEFAULT_VALUE, invalidDefaultValue.getMessage()),
 					invalidDefaultValue);
+		}
+		if(error)
+		{
+			String disallowedValue = String.format(UserErrors.DISALLOWED_VALUE, value, limiter);
+			throw new IllegalArgumentException(String.format(ProgrammaticErrors.INVALID_DEFAULT_VALUE, disallowedValue));
 		}
 	}
 
@@ -332,45 +326,15 @@ public final class Argument<T>
 		AT_LEAST_ONE_ARGUMENT
 	}
 
-	static final Predicate<Argument<?>> IS_INDEXED = new Predicate<Argument<?>>(){
-		@Override
-		public boolean apply(@Nonnull Argument<?> input)
-		{
-			return input.isIndexed();
-		}
-	};
+	static final Predicate<Argument<?>> IS_INDEXED = Argument::isIndexed;
 
-	static final Predicate<Argument<?>> IS_REQUIRED = new Predicate<Argument<?>>(){
-		@Override
-		public boolean apply(@Nonnull Argument<?> input)
-		{
-			return input.isRequired();
-		}
-	};
+	static final Predicate<Argument<?>> IS_REQUIRED = Argument::isRequired;
 
-	static final Predicate<Argument<?>> IS_VISIBLE = new Predicate<Argument<?>>(){
-		@Override
-		public boolean apply(@Nonnull Argument<?> input)
-		{
-			return !input.hideFromUsage;
-		}
-	};
+	static final Predicate<Argument<?>> IS_VISIBLE = input -> !input.hideFromUsage;
 
-	static final Predicate<Argument<?>> IS_OF_VARIABLE_ARITY = new Predicate<Argument<?>>(){
-		@Override
-		public boolean apply(@Nonnull Argument<?> input)
-		{
-			return input.parser().parameterArity() == ParameterArity.VARIABLE_AMOUNT;
-		}
-	};
+	static final Predicate<Argument<?>> IS_OF_VARIABLE_ARITY = input -> input.parser().parameterArity() == ParameterArity.VARIABLE_AMOUNT;
 
-	static final Comparator<Argument<?>> NAME_COMPARATOR = new Comparator<Argument<?>>(){
-		// TODO(jontejj): replace this with a comparator that uses the Usage.locale instead of
-		// Locale.ROOT?
-		@Override
-		public int compare(Argument<?> lhs, Argument<?> rhs)
-		{
-			return lhs.sortingKey.compareTo(rhs.sortingKey);
-		}
-	};
+	// TODO(jontejj): replace this with a comparator that uses the Usage.locale instead of
+	// Locale.ROOT?
+	static final Comparator<Argument<?>> NAME_COMPARATOR = (lhs, rhs) -> lhs.sortingKey.compareTo(rhs.sortingKey);
 }

@@ -1,5 +1,0 @@
-Usage: dateTime [Arguments]
-
-Arguments:
---start <date>    <date>: an ISO8601 date, such as 2011-02-28
-                  Default: Current time

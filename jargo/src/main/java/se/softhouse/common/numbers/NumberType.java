@@ -1,20 +1,20 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.numbers;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableList;
+import static java.util.Objects.requireNonNull;
 import static se.softhouse.common.strings.Describables.illegalArgument;
 import static se.softhouse.common.strings.Describers.numberDescriber;
 import static se.softhouse.common.strings.StringsUtil.NEWLINE;
@@ -36,17 +36,13 @@ import javax.annotation.concurrent.Immutable;
 import se.softhouse.common.strings.Describable;
 import se.softhouse.common.strings.Describables;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Longs;
-
 /**
  * A class that exposes static fields (and functions), such as {@link Integer#MAX_VALUE} and
  * {@link Integer#MIN_VALUE}, for subclasses of {@link Number} in an object oriented way.<br>
  * <b>Note:</b> As {@link Double} and {@link Float} are very hard to use <a
  * href="http://www.ibm.com/developerworks/java/library/j-jtp0114/">right</a>, their counterparts
  * are not available here.
- * 
+ *
  * @param <T> the subclass of {@link Number}
  */
 @Immutable
@@ -94,11 +90,11 @@ public abstract class NumberType<T extends Number>
 	 * href="http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html">data size</a>)
 	 * {@link List} of {@link NumberType}s
 	 */
-	public static final ImmutableList<NumberType<?>> TYPES = ImmutableList.<NumberType<?>>of(BYTE, SHORT, INTEGER, LONG, BIG_INTEGER, BIG_DECIMAL);
+	public static final List<NumberType<?>> TYPES = unmodifiableList(asList(BYTE, SHORT, INTEGER, LONG, BIG_INTEGER, BIG_DECIMAL));
 	/**
 	 * {@link NumberType}s that doesn't have any {@link #minValue()} or {@link #maxValue()}
 	 */
-	public static final ImmutableList<NumberType<?>> UNLIMITED_TYPES = ImmutableList.<NumberType<?>>of(BIG_INTEGER, BIG_DECIMAL);
+	public static final List<NumberType<?>> UNLIMITED_TYPES = unmodifiableList(asList(BIG_INTEGER, BIG_DECIMAL));
 
 	/**
 	 * <pre>
@@ -106,8 +102,9 @@ public abstract class NumberType<T extends Number>
 	 * 1st %s = the received value
 	 * 2nd %s = the minimum allowed value
 	 * 3rd %s = the maximum allowed value
+	 * </pre>
 	 */
-	@VisibleForTesting static final String OUT_OF_RANGE = "'%s' is not in the range %s to %s";
+	static final String OUT_OF_RANGE = "'%s' is not in the range %s to %s";
 
 	/**
 	 * @return the static {@code MIN_VALUE} field of {@code T}
@@ -163,10 +160,10 @@ public abstract class NumberType<T extends Number>
 	 * <pre>
 	 * Converts {@code value} into a {@link Number} of the type {@code T} in a {@link Locale}
 	 * sensitive way by using {@link NumberFormat}.
-	 * 
+	 *
 	 * For instance:
 	 * {@code Integer fortyTwo = NumberType.INTEGER.parse("42", Locale.US);}
-	 * 
+	 *
 	 * @throws IllegalArgumentException if the value isn't convertable to a number of type {@code T}
 	 * </pre>
 	 */
@@ -198,10 +195,10 @@ public abstract class NumberType<T extends Number>
 	 * <pre>
 	 * Converts {@code value} into a {@link Number} of the type {@code T} assuming {@code value}
 	 * is expressed in a {@link Locale#US} format.
-	 * 
+	 *
 	 * For instance:
 	 * {@code Integer fortyTwo = NumberType.INTEGER.parse("42");}
-	 * 
+	 *
 	 * @throws IllegalArgumentException if the value isn't convertable to a number of type {@code T}
 	 * </pre>
 	 */
@@ -229,7 +226,7 @@ public abstract class NumberType<T extends Number>
 
 	/**
 	 * Returns a descriptive string of the range this {@link NumberType} can {@link #parse(String)}
-	 * 
+	 *
 	 * @param inLocale the locale to format numbers with
 	 */
 	@CheckReturnValue
@@ -366,16 +363,25 @@ public abstract class NumberType<T extends Number>
 		@Override
 		public boolean inRange(Number number)
 		{
-			return number instanceof Long || Longs.tryParse(number.toString()) != null;
+			if(number instanceof Long)
+				return true;
+			try
+			{
+				Long.parseLong(number.toString());
+				return true;
+			}
+			catch(NumberFormatException wrongNumber)
+			{
+				return false;
+			}
 		}
 	}
 
 	/**
 	 * A {@link NumberType} that doesn't have any {@link #minValue()} or {@link #maxValue()}.
-	 * 
+	 *
 	 * @param <T> the type of {@link Number} that's unlimited, {@link BigDecimal} for instance.
 	 */
-	@SuppressWarnings("javadoc")
 	public abstract static class UnlimitedNumberType<T extends Number> extends NumberType<T>
 	{
 		UnlimitedNumberType()
@@ -435,7 +441,7 @@ public abstract class NumberType<T extends Number>
 		@Override
 		public boolean inRange(Number number)
 		{
-			checkNotNull(number);
+			requireNonNull(number);
 			if(number instanceof BigDecimal)
 				return ((BigDecimal) number).scale() <= 0;
 			return true;
@@ -444,21 +450,18 @@ public abstract class NumberType<T extends Number>
 		@Override
 		void throwForOutOfRange(String input, Number result, Locale inLocale) throws IllegalArgumentException
 		{
-			if(result instanceof BigDecimal)
+			boolean hasDecimals = ((BigDecimal) result).scale() > 0;
+			if(hasDecimals)
 			{
-				boolean hasDecimals = ((BigDecimal) result).scale() > 0;
-				if(hasDecimals)
-				{
-					int decimalPosition = input.indexOf('.');
-					throw illegalArgument(formatError(input, inLocale, new ParsePosition(decimalPosition)));
-				}
+				int decimalPosition = input.indexOf('.');
+				throw illegalArgument(formatError(input, inLocale, new ParsePosition(decimalPosition)));
 			}
 		}
 
 		@Override
 		public String descriptionOfValidValues(Locale inLocale)
 		{
-			checkNotNull(inLocale);
+			requireNonNull(inLocale);
 			return "an arbitrary integer number (practically no limits)";
 		}
 	}
@@ -474,7 +477,7 @@ public abstract class NumberType<T extends Number>
 		@Override
 		public boolean inRange(Number number)
 		{
-			checkNotNull(number);
+			requireNonNull(number);
 			return true;
 		}
 
@@ -491,7 +494,7 @@ public abstract class NumberType<T extends Number>
 		@Override
 		public String descriptionOfValidValues(Locale inLocale)
 		{
-			checkNotNull(inLocale);
+			requireNonNull(inLocale);
 			return "an arbitrary decimal number (practically no limits)";
 		}
 	}

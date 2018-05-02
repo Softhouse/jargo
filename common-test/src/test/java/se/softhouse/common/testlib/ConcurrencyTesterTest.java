@@ -1,16 +1,14 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.testlib;
 
@@ -34,14 +32,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Test;
 
-import se.softhouse.common.testlib.ConcurrencyTester.RunnableFactory;
-
-import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import com.google.common.util.concurrent.Atomics;
+
+import se.softhouse.common.testlib.ConcurrencyTester.RunnableFactory;
 
 /**
  * Tests for {@link ConcurrencyTester}
@@ -95,7 +92,7 @@ public class ConcurrencyTesterTest
 		// the first one after the startSignal have been sent to be executed.
 		assertThat(maxInARow) //
 				.as("At least two of " + NR_OF_CONCURRENT_RUNNERS + " threads should be interleaved "
-							+ "with each other, otherwise the concurrency test harness is not acceptable") //
+						+ "with each other, otherwise the concurrency test harness is not acceptable") //
 				.isLessThanOrEqualTo(2);
 	}
 
@@ -235,7 +232,7 @@ public class ConcurrencyTesterTest
 									}
 									catch(BrokenBarrierException e)
 									{
-										Throwables.propagate(e);
+										throw new RuntimeException(e);
 									}
 								}
 							};
@@ -340,8 +337,8 @@ public class ConcurrencyTesterTest
 		}
 		catch(AssertionError expected)
 		{
-			assertThat(expected.getMessage()).isEqualTo(NR_OF_CONCURRENT_RUNNERS + " of " + NR_OF_CONCURRENT_RUNNERS
-																+ " did not finish within 0 NANOSECONDS");
+			assertThat(expected.getMessage())
+					.isEqualTo(NR_OF_CONCURRENT_RUNNERS + " of " + NR_OF_CONCURRENT_RUNNERS + " did not finish within 0 NANOSECONDS");
 		}
 	}
 

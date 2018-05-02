@@ -1,22 +1,20 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.strings;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
-
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 import java.io.File;
 import java.text.NumberFormat;
 import java.util.Iterator;
@@ -24,15 +22,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
-
-import com.google.common.annotations.Beta;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Objects.requireNonNull;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
+import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 
 /**
  * Gives you static access to implementations of the {@link Describer} interface.
@@ -56,23 +51,8 @@ public final class Describers
 	@CheckReturnValue
 	public static <T> Describer<T> withConstantString(final String constant)
 	{
-		return new ConstantStringDescriber<T>(constant);
-	}
-
-	private static final class ConstantStringDescriber<T> implements Describer<T>
-	{
-		private final String constant;
-
-		private ConstantStringDescriber(final String constant)
-		{
-			this.constant = checkNotNull(constant);
-		}
-
-		@Override
-		public String describe(T value, Locale inLocale)
-		{
-			return constant;
-		}
+		requireNonNull(constant);
+		return (value, locale) -> constant;
 	}
 
 	/**
@@ -85,24 +65,7 @@ public final class Describers
 	@CheckReturnValue
 	public static <T> Describer<T> toStringDescriber()
 	{
-		@SuppressWarnings("unchecked")
-		Describer<T> toStringDescriber = (Describer<T>) ToStringDescriber.INSTANCE;
-		return toStringDescriber;
-	}
-
-	private static final class ToStringDescriber implements Describer<Object>
-	{
-		private static final Describer<Object> INSTANCE = new ToStringDescriber();
-
-		private ToStringDescriber()
-		{
-		}
-
-		@Override
-		public String describe(Object value, Locale inLocale)
-		{
-			return String.valueOf(value);
-		}
+		return (value, locale) -> String.valueOf(value);
 	}
 
 	/**
@@ -174,7 +137,6 @@ public final class Describers
 		return BooleanDescribers.ON_OFF;
 	}
 
-	@VisibleForTesting
 	enum BooleanDescribers implements Describer<Boolean>
 	{
 		ENABLED_DISABLED
@@ -262,7 +224,7 @@ public final class Describers
 	@CheckReturnValue
 	public static <K, V> Describer<Map<K, V>> mapDescriber(Map<K, String> descriptions)
 	{
-		return new MapDescription<K, V>(ImmutableMap.copyOf(descriptions), Describers.<K>toStringDescriber());
+		return new MapDescription<K, V>(unmodifiableMap(descriptions), Describers.<K>toStringDescriber());
 	}
 
 	/**
@@ -276,7 +238,7 @@ public final class Describers
 	 */
 	public static <K, V> Describer<Map<K, V>> mapDescriber(Map<K, String> descriptions, Describer<K> keyDescriber)
 	{
-		return new MapDescription<K, V>(ImmutableMap.copyOf(descriptions), checkNotNull(keyDescriber));
+		return new MapDescription<K, V>(unmodifiableMap(descriptions), requireNonNull(keyDescriber));
 	}
 
 	private static final class MapDescription<K, V> implements Describer<Map<K, V>>
@@ -301,7 +263,7 @@ public final class Describers
 				result.append("=");
 				result.append(entry.getValue());
 				String descriptionForEntry = descriptions.get(key);
-				checkNotNull(descriptionForEntry, "Undescribed key: %s", key);
+				check(descriptionForEntry != null, "Undescribed key: %s", key);
 				result.append(NEWLINE).append(" ").append(descriptionForEntry).append(NEWLINE);
 			}
 			return result.toString();
@@ -366,9 +328,9 @@ public final class Describers
 
 		private MapDescriber(Describer<K> keyDescriber, Describer<V> valueDescriber, String valueSeparator)
 		{
-			this.keyDescriber = checkNotNull(keyDescriber);
-			this.valueDescriber = checkNotNull(valueDescriber);
-			this.valueSeparator = checkNotNull(valueSeparator);
+			this.keyDescriber = requireNonNull(keyDescriber);
+			this.valueDescriber = requireNonNull(valueDescriber);
+			this.valueSeparator = requireNonNull(valueSeparator);
 		}
 
 		@Override
@@ -403,71 +365,32 @@ public final class Describers
 	}
 
 	/**
-	 * <pre>
-	 * Exposes a {@link Describer} as a Guava {@link Function}.
-	 * <b>Note:</b>This method may be removed in the future if Guava is removed as a dependency.
-	 * 
-	 * @param describer the describer to convert to a {@link Function}
-	 * @return a {@link Function} that uses {@link Describer#describe(Object, Locale) describe(input, Locale.getDefault()}.
-	 * </pre>
-	 */
-	@Beta
-	@Nonnull
-	@CheckReturnValue
-	public static <T> Function<? super T, String> asFunction(final Describer<T> describer)
-	{
-		checkNotNull(describer);
-		return new Function<T, String>(){
-			@Override
-			public String apply(@Nonnull T input)
-			{
-				return describer.describe(input, Locale.getDefault());
-			}
-		};
-	}
-
-	/**
-	 * Like {@link #asFunction(Describer)} but with {@code locale} instead of
+	 * Like {@link Describer#apply(Object)} but with {@code locale} instead of
 	 * {@link Locale#getDefault()}.
 	 */
-	@Beta
 	@Nonnull
 	@CheckReturnValue
 	public static <T> Function<? super T, String> asFunction(final Describer<T> describer, final Locale locale)
 	{
-		checkNotNull(describer);
-		checkNotNull(locale);
-		return new Function<T, String>(){
-			@Override
-			public String apply(@Nonnull T input)
-			{
-				return describer.describe(input, locale);
-			}
-		};
+		requireNonNull(describer);
+		requireNonNull(locale);
+		return (Function<T, String>) input -> describer.describe(input, locale);
 	}
 
 	/**
 	 * <pre>
 	 * Exposes a {@link Function} as a {@link Describer}.
-	 * <b>Note:</b>This method may be removed in the future if Guava is removed as a dependency.
-	 * 
-	 * @param describerFunction a function that can convert {@code T} values into {@link String}s
+	 *
+	 * &#64;param describerFunction a function that can convert {@code T} values into {@link String}s
 	 * @return a {@link Describer} that applies {@link Function#apply(Object)} to {@link Describer#describe(Object, Locale)} input values.
 	 * </pre>
 	 */
-	@Beta
 	@Nonnull
 	@CheckReturnValue
 	public static <T> Describer<T> usingFunction(final Function<T, String> describerFunction)
 	{
-		checkNotNull(describerFunction);
-		return new Describer<T>(){
-			@Override
-			public String describe(T value, Locale inLocale)
-			{
-				return describerFunction.apply(value);
-			}
-		};
+		requireNonNull(describerFunction);
+		return (value, inLocale) -> describerFunction.apply(value);
 	}
 
 	/**
@@ -501,8 +424,8 @@ public final class Describers
 
 		ListDescriber(Describer<T> valueDescriber, String valueSeparator)
 		{
-			this.valueDescriber = checkNotNull(valueDescriber);
-			this.valueSeparator = checkNotNull(valueSeparator);
+			this.valueDescriber = requireNonNull(valueDescriber);
+			this.valueSeparator = requireNonNull(valueSeparator);
 		}
 
 		@Override

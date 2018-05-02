@@ -1,24 +1,22 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Strings.repeat;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
 import static se.softhouse.common.strings.Describables.format;
+import static se.softhouse.common.strings.StringsUtil.repeat;
 import static se.softhouse.jargo.ArgumentExceptions.forMissingNthParameter;
 import static se.softhouse.jargo.ArgumentExceptions.forMissingParameter;
 import static se.softhouse.jargo.ArgumentExceptions.withMessage;
@@ -31,15 +29,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import se.softhouse.common.guavaextensions.Predicates2;
 import se.softhouse.common.numbers.NumberType;
 import se.softhouse.common.strings.StringBuilders;
 import se.softhouse.jargo.Argument.ParameterArity;
@@ -47,25 +51,13 @@ import se.softhouse.jargo.ArgumentExceptions.MissingParameterException;
 import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
 import se.softhouse.jargo.internal.Texts.UserErrors;
 
-import com.google.common.annotations.Beta;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Ascii;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Splitter;
-import com.google.common.base.Supplier;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 /**
  * <pre>
  * Gives you static access to implementations of the {@link StringParser} interface.
  * All methods return {@link Immutable} parsers.
  * Most methods here even return the same instance for every call.
  * If you want to customize one of these parsers you can use a {@link ForwardingStringParser}.
- * 
+ *
  * By {@link StringParser#defaultValue() default} most parsers return <code>zero</code> or otherwise
  * sane defaults. The only exception being {@link #enumParser(Class)} which returns null instead
  * of the first enum constant available.
@@ -88,7 +80,6 @@ public final class StringParsers
 		return StringStringParser.STRING;
 	}
 
-	@VisibleForTesting
 	enum StringStringParser implements StringParser<String>
 	{
 		/**
@@ -212,7 +203,8 @@ public final class StringParsers
 	 * A parser that returns the first character in a {@link String} as a {@link Character} and that
 	 * throws {@link ArgumentException} for any given {@link String} with more than
 	 * one {@link Character}.
-	 * The {@link StringParser#defaultValue()} is the {@link Ascii#NUL} character.
+	 * The {@link StringParser#defaultValue()} is the <a href=
+	"https://en.wikipedia.org/wiki/Null_character">NUL</a> character.
 	 * </pre>
 	 */
 	@CheckReturnValue
@@ -256,18 +248,18 @@ public final class StringParsers
 	/**
 	 * <pre>
 	 * A parser that uses {@link Enum#valueOf(Class, String)} to {@link StringParser#parse(String, Locale) parse} input strings.
-	 * 
+	 *
 	 * <b>Case sensitivity note:</b> First a direct match with the input value in upper case is
 	 * made, if that fails a direct match without converting the case is made,
 	 * if that also fails an {@link ArgumentException} is thrown. This order of execution is
 	 * based on the fact that users typically don't upper case their input while
-	 * <nobr><a href="http://www.oracle.com/technetwork/java/javase/documentation/codeconventions-135099.html#367">java naming conventions</a>
-	 * recommends upper case for enum constants.</nobr>
+	 * <a href=
+	"http://www.oracle.com/technetwork/java/javase/documentation/codeconventions-135099.html#367">java naming conventions</a> recommends upper case for enum constants.
 	 * </pre>
-	 * 
+	 *
 	 * <b>Default value:</b> <code>null</code> is used as {@link StringParser#defaultValue()} and
 	 * not any of the enum values in {@code enumToHandle}
-	 * 
+	 *
 	 * @param enumToHandle the {@link Class} literal for the {@link Enum} to parse strings into
 	 * @return a {@link StringParser} that parses strings into enum values of the type {@code T}
 	 */
@@ -284,7 +276,7 @@ public final class StringParsers
 
 		private EnumParser(final Class<E> enumToHandle)
 		{
-			enumType = checkNotNull(enumToHandle);
+			enumType = requireNonNull(enumToHandle);
 		}
 
 		@Override
@@ -321,14 +313,10 @@ public final class StringParsers
 		public String descriptionOfValidValues(Locale locale)
 		{
 			E[] enumValues = enumType.getEnumConstants();
-			StringBuilder values = StringBuilders.withExpectedSize(enumValues.length * AVERAGE_ENUM_NAME_LENGTH);
-			values.append('{');
-			Joiner.on(" | ").appendTo(values, enumValues);
-			values.append('}');
-			return values.toString();
+			StringJoiner joiner = new StringJoiner(" | ", "{", "}");
+			Arrays.stream(enumValues).forEach(e -> joiner.add(e.toString()));
+			return joiner.toString();
 		}
-
-		private static final int AVERAGE_ENUM_NAME_LENGTH = 10;
 
 		@Override
 		public E defaultValue()
@@ -461,64 +449,15 @@ public final class StringParsers
 
 	/**
 	 * <pre>
-	 * A {@link Function} that uses {@link StringParser#parse(String, Locale) parse} for input {@link String}s.
-	 * </pre>
-	 * 
-	 * For example:
-	 * 
-	 * <pre class="prettyprint">
-	 * <code class="language-java">
-	 * List&lt;Integer&gt; result =  Lists.transform(asList("1", "3", "2"), asFunction(integerParser()));
-	 * </code>
-	 * </pre>
-	 * 
-	 * <b>Note:</b>This method may be removed in the future if Guava is removed as a dependency.<br>
-	 * <b>Note:</b>The parser will pass the {@link Locale#getDefault()} to
-	 * {@link StringParser#parse(String, Locale) parse}. Use
-	 * {@link StringParsers#asFunction(StringParser, Locale)} to specify a specific {@link Locale}
-	 * 
-	 * @param parser the parser to expose as a {@link Function}
-	 * @return {@code parser} exposed in a {@link Function} that throws {@link ArgumentException}
-	 *         when given faulty values.
-	 */
-	@Nonnull
-	@CheckReturnValue
-	@Beta
-	public static <T> Function<String, T> asFunction(final StringParser<T> parser)
-	{
-		return asFunction(parser, Locale.getDefault());
-	}
-
-	/**
-	 * {@link Locale} version of {@link #asFunction(StringParser)}
-	 */
-	@Nonnull
-	@CheckReturnValue
-	@Beta
-	public static <T> Function<String, T> asFunction(final StringParser<T> parser, final Locale localeToUse)
-	{
-		checkNotNull(parser);
-		checkNotNull(localeToUse);
-		return new Function<String, T>(){
-			@Override
-			public T apply(@Nonnull String input)
-			{
-				return parser.parse(input, localeToUse);
-			}
-		};
-	}
-
-	/**
-	 * <pre>
 	 * Makes it possible to convert several (or zero) {@link String}s into a single {@code T} value.
 	 * For a simpler one use {@link StringParser}.
-	 * 
+	 *
 	 * {@link Argument} is passed to the functions that produces text for the usage,
 	 * it can't be a member of this class because one parser can be referenced
 	 * from multiple different {@link Argument}s so this is extrinsic state.
-	 * 
-	 * @param <T> the type this parser parses strings into
 	 * </pre>
+	 *
+	 * @param <T> the type this parser parses strings into
 	 */
 	abstract static class InternalStringParser<T>
 	{
@@ -541,7 +480,7 @@ public final class StringParsers
 
 		/**
 		 * Describes the values this parser accepts
-		 * 
+		 *
 		 * @return a description string to show in usage texts
 		 */
 		@Nonnull
@@ -792,7 +731,7 @@ public final class StringParsers
 		List<T> parse(final ArgumentIterator arguments, final List<T> list, final Argument<?> argumentSettings, Locale locale)
 				throws ArgumentException
 		{
-			List<T> parsedArguments = newArrayListWithCapacity(arity);
+			List<T> parsedArguments = new ArrayList<>(arity);
 			for(int i = 0; i < arity; i++)
 			{
 				try
@@ -813,7 +752,7 @@ public final class StringParsers
 		public List<T> defaultValue()
 		{
 			T defaultValue = elementParser().defaultValue();
-			List<T> listFilledWithDefaultValues = newArrayListWithCapacity(arity);
+			List<T> listFilledWithDefaultValues = new ArrayList<T>(arity);
 			for(int i = 0; i < arity; i++)
 			{
 				listFilledWithDefaultValues.add(defaultValue);
@@ -843,7 +782,7 @@ public final class StringParsers
 		List<T> parse(final ArgumentIterator arguments, final List<T> list, final Argument<?> argumentSettings, Locale locale)
 				throws ArgumentException
 		{
-			List<T> parsedArguments = newArrayListWithCapacity(arguments.nrOfRemainingArguments());
+			List<T> parsedArguments = new ArrayList<>(arguments.nrOfRemainingArguments());
 			while(arguments.hasNext())
 			{
 				T parsedValue = elementParser().parse(arguments, null, argumentSettings, locale);
@@ -868,19 +807,20 @@ public final class StringParsers
 
 	/**
 	 * Implements {@link ArgumentBuilder#splitWith(String)}.
-	 * 
+	 *
 	 * @param <T> the type that's separated by the {@code valueSeparator}
 	 */
 	static final class StringSplitterParser<T> extends ListParser<T>
 	{
 		@Nonnull private final String valueSeparator;
-		@Nonnull private final Splitter splitter;
+		@Nonnull private final Pattern splitter;
 
 		StringSplitterParser(final String valueSeparator, final InternalStringParser<T> parser)
 		{
 			super(parser);
+			check(!valueSeparator.isEmpty(), "Splitting with an empty string is not supported");
 			this.valueSeparator = valueSeparator;
-			this.splitter = Splitter.on(valueSeparator).omitEmptyStrings().trimResults();
+			this.splitter = Pattern.compile(valueSeparator);
 		}
 
 		@Override
@@ -895,6 +835,12 @@ public final class StringParsers
 
 			for(String value : splitter.split(values))
 			{
+				value = value.trim();
+				if(value.isEmpty())
+				{
+					continue;
+				}
+
 				ArgumentIterator argument = ArgumentIterator.forArguments(Arrays.asList(value));
 				T parsedValue = elementParser().parse(argument, null, argumentSettings, locale);
 				result.add(parsedValue);
@@ -912,7 +858,7 @@ public final class StringParsers
 
 	/**
 	 * Implements {@link ArgumentBuilder#repeated()}.
-	 * 
+	 *
 	 * @param <T> type of the repeated values (such as {@link Integer} for {@link #integerParser()}
 	 */
 	static final class RepeatedArgumentParser<T> extends ListParser<T>
@@ -931,7 +877,7 @@ public final class StringParsers
 			List<T> listToStoreRepeatedValuesIn = previouslyCreatedList;
 			if(listToStoreRepeatedValuesIn == null)
 			{
-				listToStoreRepeatedValuesIn = Lists.newLinkedList();
+				listToStoreRepeatedValuesIn = new LinkedList<>();
 			}
 
 			listToStoreRepeatedValuesIn.add(parsedValue);
@@ -940,13 +886,12 @@ public final class StringParsers
 	}
 
 	/**
-	 * Implements {@link ArgumentBuilder#asPropertyMap()} &
+	 * Implements {@link ArgumentBuilder#asPropertyMap()} and
 	 * {@link ArgumentBuilder#asKeyValuesWithKeyParser(StringParser)}.
-	 * 
+	 *
 	 * @param <K> the type of key in the resulting map
 	 * @param <V> the type of values in the resulting map
 	 */
-	@VisibleForTesting
 	static final class KeyValueParser<K, V> extends InternalStringParser<Map<K, V>>
 	{
 		@Nonnull private final InternalStringParser<V> valueParser;
@@ -978,7 +923,7 @@ public final class StringParsers
 									return defaultValue.get();
 								}
 							};
-						return Maps.newLinkedHashMap();
+						return new LinkedHashMap<>();
 					}
 				};
 			}
@@ -1012,7 +957,7 @@ public final class StringParsers
 
 			try
 			{
-				if(!valueLimiter.apply(parsedValue))
+				if(!valueLimiter.test(parsedValue))
 					throw withMessage(format(UserErrors.DISALLOWED_PROPERTY_VALUE, parsedKey, parsedValue, valueLimiter));
 			}
 			catch(IllegalArgumentException e)
@@ -1053,7 +998,7 @@ public final class StringParsers
 			String valueMeta = '"' + valueParser.metaDescription(argumentSettings) + '"';
 			String keyDescription = keyParser.descriptionOfValidValues(locale);
 			String valueDescription;
-			if(valueLimiter != Predicates.alwaysTrue())
+			if(valueLimiter != Predicates2.alwaysTrue())
 			{
 				valueDescription = valueLimiter.toString();
 			}
@@ -1087,7 +1032,7 @@ public final class StringParsers
 
 		/**
 		 * A bridge between the {@link StringParser} & {@link InternalStringParser} interfaces.
-		 * 
+		 *
 		 * @param parserToBridge the {@link StringParser} to expose as a
 		 *            {@link InternalStringParser}
 		 */

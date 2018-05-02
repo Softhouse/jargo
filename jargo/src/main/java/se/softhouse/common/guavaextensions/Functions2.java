@@ -1,44 +1,38 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.guavaextensions;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import se.softhouse.common.strings.StringsUtil;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
+import static se.softhouse.common.strings.StringsUtil.UTF8;
 
 /**
  * Gives you static access to additional implementations of the {@link Function} interface, as a
- * complement to {@link Functions}
+ * complement to {@link Function}
  */
 @Immutable
 public final class Functions2
@@ -53,7 +47,7 @@ public final class Functions2
 	 * If one of the {@link Function}s makes {@code T} {@link Immutable},
 	 * make sure to pass it in last as it's hard to modify
 	 * an {@link Immutable} value. This works exactly like
-	 * {@link Functions#compose(Function, Function)} except that if {@code first} doesn't do
+	 * {@link Function#compose(Function)} except that if {@code first} doesn't do
 	 * anything, {@code second} is returned directly instead.
 	 * 
 	 * @param first a {@link Function}
@@ -63,31 +57,12 @@ public final class Functions2
 	@Nonnull
 	public static <T> Function<T, T> compound(Function<T, T> first, Function<T, T> second)
 	{
-		checkNotNull(first);
-		checkNotNull(second);
-		if(first == Functions.identity())
+		requireNonNull(first);
+		requireNonNull(second);
+		if(first == Function.identity())
 			return second;
 
-		return new CompoundFunction<T>(first, second);
-	}
-
-	private static final class CompoundFunction<T> implements Function<T, T>
-	{
-		@Nonnull private final Function<T, T> first;
-		@Nonnull private final Function<T, T> second;
-
-		private CompoundFunction(Function<T, T> first, Function<T, T> second)
-		{
-			this.first = first;
-			this.second = second;
-		}
-
-		@Nullable
-		@Override
-		public T apply(@Nullable T value)
-		{
-			return second.apply(first.apply(value));
-		}
+		return value -> second.apply(first.apply(value));
 	}
 
 	/**
@@ -97,8 +72,8 @@ public final class Functions2
 	@Nonnull
 	public static <E> Function<List<E>, List<E>> listTransformer(Function<E, E> elementTransformer)
 	{
-		if(elementTransformer == Functions.identity())
-			return Functions.identity();
+		if(elementTransformer == Function.identity())
+			return Function.identity();
 		return new ListTransformer<E>(elementTransformer);
 	}
 
@@ -108,7 +83,7 @@ public final class Functions2
 
 		private ListTransformer(Function<E, E> elementTransformer)
 		{
-			this.elementTransformer = checkNotNull(elementTransformer);
+			this.elementTransformer = requireNonNull(elementTransformer);
 		}
 
 		@Override
@@ -116,7 +91,7 @@ public final class Functions2
 		{
 			if(values == null)
 				return null;
-			return ImmutableList.copyOf(Lists.transform(values, elementTransformer));
+			return Collections.unmodifiableList(values.stream().map(elementTransformer).collect(toList()));
 		}
 	}
 
@@ -127,8 +102,8 @@ public final class Functions2
 	@Nonnull
 	public static <K, V> Function<Map<K, V>, Map<K, V>> mapValueTransformer(Function<V, V> valueTransformer)
 	{
-		if(valueTransformer == Functions.identity())
-			return Functions.identity();
+		if(valueTransformer == Function.identity())
+			return Function.identity();
 		return new MapValueTransformer<K, V>(valueTransformer);
 	}
 
@@ -138,7 +113,7 @@ public final class Functions2
 
 		private MapValueTransformer(Function<V, V> valueTransformer)
 		{
-			this.valueTransformer = checkNotNull(valueTransformer);
+			this.valueTransformer = requireNonNull(valueTransformer);
 		}
 
 		@Override
@@ -146,7 +121,9 @@ public final class Functions2
 		{
 			if(map == null)
 				return null;
-			return ImmutableMap.copyOf(Maps.transformValues(map, valueTransformer));
+			Map<K, V> transformed = new LinkedHashMap<K, V>(map.size());
+			map.entrySet().stream().forEach((entry) -> transformed.put(entry.getKey(), valueTransformer.apply(entry.getValue())));
+			return Collections.unmodifiableMap(transformed);
 		}
 	}
 
@@ -206,8 +183,8 @@ public final class Functions2
 	@Nonnull
 	public static <T> Function<T, T> repeat(Function<T, T> function, long times)
 	{
-		checkNotNull(function);
-		checkArgument(times >= 0, "times (%s) must be positive", times);
+		requireNonNull(function);
+		check(times >= 0, "times (%s) must be positive", times);
 		return new FunctionRepeater<T>(function, times);
 	}
 
@@ -236,7 +213,7 @@ public final class Functions2
 
 	/**
 	 * Returns a {@link Function} that reads whole {@link File}s into {@link String}s using the
-	 * {@link Charsets#UTF_8 UTF-8} charset.
+	 * {@link StringsUtil#UTF8 UTF-8} charset.
 	 */
 	public static Function<File, String> fileToString()
 	{
@@ -254,7 +231,7 @@ public final class Functions2
 				throw new IllegalArgumentException(input.getAbsolutePath() + " is a directory, not a file");
 			try
 			{
-				return Files.toString(input, Charsets.UTF_8);
+				return new String(Files.readAllBytes(input.toPath()), UTF8);
 			}
 			catch(IOException e)
 			{

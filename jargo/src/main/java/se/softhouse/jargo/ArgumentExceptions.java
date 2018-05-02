@@ -1,20 +1,18 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.jargo;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static se.softhouse.common.strings.StringsUtil.numberToPositionalString;
 
 import java.io.Serializable;
@@ -123,7 +121,7 @@ public final class ArgumentExceptions
 
 		WrappedArgumentException(final Throwable wrappedException)
 		{
-			this.wrappedException = checkNotNull(wrappedException);
+			this.wrappedException = requireNonNull(wrappedException);
 			initCause(wrappedException);
 		}
 
@@ -142,7 +140,7 @@ public final class ArgumentExceptions
 	/**
 	 * Thrown when {@link ArgumentBuilder#required()} has been specified but the
 	 * argument wasn't found in the input arguments
-	 * 
+	 *
 	 * @param missingArguments a collection of all the missing arguments
 	 */
 	@CheckReturnValue
@@ -184,14 +182,14 @@ public final class ArgumentExceptions
 	 * Used when
 	 * "--number 1" is expected but
 	 * "--number 1 --number 2" is given
-	 * 
+	 *
 	 * @param unhandledArgument the argument --number in this case
 	 */
 	@CheckReturnValue
 	@Nonnull
 	static ArgumentException forUnallowedRepetitionArgument(final String unhandledArgument)
 	{
-		checkNotNull(unhandledArgument);
+		requireNonNull(unhandledArgument);
 		return new SimpleArgumentException(Describables.format(UserErrors.DISALLOWED_REPETITION, unhandledArgument));
 	}
 
@@ -199,8 +197,8 @@ public final class ArgumentExceptions
 	 * Used when
 	 * "-p 8080" is expected but
 	 * "-p" is given <br>
-	 * Prints "Missing <Integer> parameter for -p"
-	 * 
+	 * Prints "Missing &lt;Integer&gt; parameter for -p"
+	 *
 	 * @param argumentWithMissingParameter the -p argument in this case
 	 */
 	@CheckReturnValue
@@ -240,8 +238,8 @@ public final class ArgumentExceptions
 	 * Used when
 	 * "-p 8080 7080" is expected but
 	 * "-p 8080" is given<br>
-	 * Prints "Missing second <Integer> parameter for -p"
-	 * 
+	 * Prints "Missing second &lt;Integer&gt; parameter for -p"
+	 *
 	 * @param cause with a {@link MissingParameterException#parameterDescription()
 	 *            parameterDescription} such as "&lt;Integer&gt;" in this case
 	 * @param missingIndex 1 in this case
@@ -282,7 +280,7 @@ public final class ArgumentExceptions
 	 * "1 2" is expected but
 	 * "1 2 3" is given<br>
 	 * Prints "Unexpected argument: 3, previous argument: 2"
-	 * 
+	 *
 	 * @param arguments used to print the unexpected argument, 3 in this case, 2 is also printed to
 	 *            further pinpoint where 3 is situated
 	 */

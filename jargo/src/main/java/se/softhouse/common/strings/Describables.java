@@ -1,29 +1,27 @@
-/* Copyright 2013 Jonatan Jönsson
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+/*
+ * Copyright 2013 Jonatan Jönsson
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package se.softhouse.common.strings;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import se.softhouse.common.guavaextensions.Suppliers2;
 
 import java.io.Serializable;
+import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Gives you static access to implementations of the {@link Describable} interface.
@@ -57,7 +55,7 @@ public final class Describables
 
 		private NonLazyDescription(String description)
 		{
-			this.description = checkNotNull(description);
+			this.description = requireNonNull(description);
 		}
 
 		@Override
@@ -90,8 +88,8 @@ public final class Describables
 
 		private FormatDescription(String formattingTemplate, Object ... args)
 		{
-			this.formattingTemplate = checkNotNull(formattingTemplate);
-			this.args = checkNotNull(args);
+			this.formattingTemplate = requireNonNull(formattingTemplate);
+			this.args = requireNonNull(args);
 		}
 
 		@Override
@@ -113,7 +111,7 @@ public final class Describables
 	 */
 	public static Describable cache(Describable describable)
 	{
-		return new CachingDescription(checkNotNull(describable));
+		return new CachingDescription(requireNonNull(describable));
 	}
 
 	private static final class CachingDescription implements Describable
@@ -122,13 +120,7 @@ public final class Describables
 
 		private CachingDescription(final Describable describable)
 		{
-			this.description = Suppliers.memoize(new Supplier<String>(){
-				@Override
-				public String get()
-				{
-					return describable.description();
-				}
-			});
+			this.description = Suppliers2.memoize(describable::description);
 		}
 
 		@Override
@@ -162,7 +154,7 @@ public final class Describables
 
 		private ToStringDescription(Object value)
 		{
-			this.value = checkNotNull(value);
+			this.value = requireNonNull(value);
 		}
 
 		@Override
@@ -212,7 +204,7 @@ public final class Describables
 		private IllegalArgument(final Describable message, Throwable cause)
 		{
 			this(message);
-			initCause(checkNotNull(cause));
+			initCause(requireNonNull(cause));
 		}
 
 		@Override
@@ -248,7 +240,7 @@ public final class Describables
 
 		private SerializableDescription(Describable descriptionToSerialize)
 		{
-			describable = checkNotNull(descriptionToSerialize);
+			describable = requireNonNull(descriptionToSerialize);
 		}
 
 		private static final class SerializationProxy implements Serializable
