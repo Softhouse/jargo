@@ -147,7 +147,7 @@ public class UsageTest
 	@Test
 	public void testUsageTextForRepeatedArgumentWithDefaultValueSet()
 	{
-		Usage usage = integerArgument().defaultValue(1).repeated().usage();
+		Usage usage = integerArgument("-n").defaultValue(1).repeated().usage();
 		assertThat(usage).contains(UsageTexts.DEFAULT_VALUE_START + "1").contains(UsageTexts.ALLOWS_REPETITIONS);
 	}
 

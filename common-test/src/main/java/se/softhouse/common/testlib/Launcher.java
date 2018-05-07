@@ -16,6 +16,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
+import static java.util.Collections.emptyList;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +26,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -91,25 +94,14 @@ public final class Launcher
 	}
 
 	/**
-	 * Runs {@code classWithMainMethod} in a separate process using the system property
-	 * {@code java.home} to find java and {@code java.class.path} for the class path. This method
-	 * will wait until program execution has finished.
+	 * Like {@link #launch(Class, String...)} but with a possiblity to specify any additional vm args to pass to the jvm
 	 * 
-	 * @param classWithMainMethod a class with a static "main" method
-	 * @param programArguments optional arguments to pass to the program
-	 * @return output/errors from the executed program
-	 * @throws IOException if an I/O error occurs while starting {@code classWithMainMethod} as a
-	 *             process
-	 * @throws InterruptedException if the thread starting the program is
-	 *             {@link Thread#interrupted()} while waiting for the program to finish
-	 * @throws IllegalArgumentException if {@code classWithMainMethod} doesn't have a public static
-	 *             main method
-	 * @throws SecurityException if it's not possible to validate the existence of a main method in
-	 *             {@code classWithMainMethod} (or if {@link SecurityManager#checkExec checkExec}
-	 *             fails)
+	 * @param additionalVmArgs the vm args to pass in
 	 */
-	public static LaunchedProgram launch(Class<?> classWithMainMethod, String ... programArguments) throws IOException, InterruptedException
+	public static LaunchedProgram launch(List<String> additionalVmArgs, Class<?> classWithMainMethod, String ... programArguments)
+			throws IOException, InterruptedException
 	{
+		checkNotNull(additionalVmArgs);
 		checkNotNull(programArguments);
 		try
 		{
@@ -130,11 +122,35 @@ public final class Launcher
 
 		List<String> args = Lists.newArrayList(jvm, "-cp", classPath);
 		args.addAll(vmArgs);
+		args.addAll(additionalVmArgs);
 		args.add(classWithMainMethod.getName());
 		args.addAll(Arrays.asList(programArguments));
 
 		String debugInformation = "\njvm: " + jvm + "\nvm args: " + vmArgs + "\nclasspath: " + classPath;
 		return execute(args, debugInformation);
+	}
+
+	/**
+	 * Runs {@code classWithMainMethod} in a separate process using the system property
+	 * {@code java.home} to find java and {@code java.class.path} for the class path. This method
+	 * will wait until program execution has finished.
+	 * 
+	 * @param classWithMainMethod a class with a static "main" method
+	 * @param programArguments optional arguments to pass to the program
+	 * @return output/errors from the executed program
+	 * @throws IOException if an I/O error occurs while starting {@code classWithMainMethod} as a
+	 *             process
+	 * @throws InterruptedException if the thread starting the program is
+	 *             {@link Thread#interrupted()} while waiting for the program to finish
+	 * @throws IllegalArgumentException if {@code classWithMainMethod} doesn't have a public static
+	 *             main method
+	 * @throws SecurityException if it's not possible to validate the existence of a main method in
+	 *             {@code classWithMainMethod} (or if {@link SecurityManager#checkExec checkExec}
+	 *             fails)
+	 */
+	public static LaunchedProgram launch(Class<?> classWithMainMethod, String ... programArguments) throws IOException, InterruptedException
+	{
+		return launch(emptyList(), classWithMainMethod, programArguments);
 	}
 
 	/**
@@ -154,6 +170,12 @@ public final class Launcher
 		return execute(Lists.asList(program, programArguments), "Failed to launch " + program);
 	}
 
+	/**
+	 * Different JDKs behave differently, to have consistent results, let's clean it away
+	 * No way to turn it off either: https://bugs.openjdk.java.net/browse/JDK-8039152
+	 */
+	private static final Pattern JVM_OUTPUT_CLEANER = Pattern.compile("Picked up _JAVA_OPTIONS.*\n");
+
 	private static LaunchedProgram execute(List<String> args, String debugInformation) throws IOException, InterruptedException
 	{
 		Process program = new ProcessBuilder().command(args).start();
@@ -164,6 +186,11 @@ public final class Launcher
 		{
 			String output = stdout.get();
 			String errors = stderr.get();
+			Matcher matcher = JVM_OUTPUT_CLEANER.matcher(errors);
+			if(matcher.find())
+			{
+				errors = matcher.replaceFirst("");
+			}
 			return new LaunchedProgram(errors, output, debugInformation);
 		}
 		catch(ExecutionException e)

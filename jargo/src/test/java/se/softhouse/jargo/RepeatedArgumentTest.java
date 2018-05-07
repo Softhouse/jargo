@@ -22,6 +22,7 @@ import static se.softhouse.jargo.limiters.FooLimiter.foos;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -80,6 +81,25 @@ public class RepeatedArgumentTest
 		List<ImmutableList<Integer>> expected = ImmutableList.of(of(1, 2), of(3, 4));
 
 		assertThat(numberMap.get("number")).isEqualTo(expected);
+	}
+
+	@Test
+	public void testThatRepeatedCanBeTransformedToUniqueValues()
+	{
+		Set<Integer> numbers = integerArgument("-n").arity(3).unique().parse("-n", "123", "24", "123");
+		assertThat(numbers).containsOnly(123, 24);
+		numbers = integerArgument("-n").variableArity().unique().parse("-n", "123", "24", "123", "1");
+		assertThat(numbers).containsOnly(123, 24, 1);
+		Set<Integer> repeatedNumbers = integerArgument("-n").repeated().unique().parse("-n", "123", "-n", "24", "-n", "123");
+		assertThat(repeatedNumbers).containsOnly(123, 24);
+		try
+		{
+			repeatedNumbers.add(4);
+			fail("Returned data types should be immutable/unmodifiable");
+		}
+		catch(UnsupportedOperationException expected)
+		{
+		}
 	}
 
 	@Test

@@ -14,7 +14,6 @@ package se.softhouse.jargo;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static se.softhouse.jargo.Arguments.command;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -170,7 +169,7 @@ public final class CommandLineParser
 	@Nonnull
 	public static CommandLineParser withCommands(final Command ... commands)
 	{
-		return new CommandLineParser(commandsToArguments(commands));
+		return new CommandLineParser(Command.subCommands(commands));
 	}
 
 	/**
@@ -253,7 +252,7 @@ public final class CommandLineParser
 	@Nonnull
 	public CommandLineParser andCommands(final Command ... commandsToAlsoSupport)
 	{
-		verifiedAdd(commandsToArguments(commandsToAlsoSupport));
+		verifiedAdd(Command.subCommands(commandsToAlsoSupport));
 		return this;
 	}
 
@@ -367,16 +366,6 @@ public final class CommandLineParser
 	public String toString()
 	{
 		return usage().toString();
-	}
-
-	private static List<Argument<?>> commandsToArguments(final Command ... commands)
-	{
-		List<Argument<?>> commandsAsArguments = new ArrayList<>(commands.length);
-		for(Command c : commands)
-		{
-			commandsAsArguments.add(command(c).build());
-		}
-		return commandsAsArguments;
 	}
 
 	private static <E extends Enum<E> & Runnable & Describable> List<Argument<?>> commandsToArguments(Class<E> commandEnum)

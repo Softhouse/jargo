@@ -19,6 +19,8 @@ import static se.softhouse.jargo.Arguments.optionArgument;
 
 import org.junit.Test;
 
+import se.softhouse.jargo.commands.CommandWithTwoArguments;
+
 /**
  * Tests for a batch of short-named optional arguments.
  * For instance when "-fs" is used instead of "-f -s"
@@ -92,5 +94,16 @@ public class CombinedOptionsTest
 
 		// Also verify that the argument is parsed by it's rightful recipient
 		assertThat(args.get(programArgument)).isEqualTo(1);
+	}
+
+	@Test
+	public void testThatBatchOfOptionFlagsWorksForCommand() throws Exception
+	{
+		Argument<Boolean> option = Arguments.optionArgument("-o").build();
+		Argument<Boolean> secondOption = Arguments.optionArgument("-s").build();
+		CommandWithTwoArguments<Boolean, Boolean> runWithOptions = new CommandWithTwoArguments<>("run", option, secondOption);
+		CommandLineParser.withCommands(runWithOptions).parse("run", "-so");
+		assertThat(runWithOptions.parsedObject).isTrue();
+		assertThat(runWithOptions.parsedObjectTwo).isTrue();
 	}
 }

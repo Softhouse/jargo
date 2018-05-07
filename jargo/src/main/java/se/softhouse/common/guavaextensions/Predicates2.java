@@ -49,24 +49,25 @@ public final class Predicates2
 		ALWAYS_TRUE((i) -> true),
 		ALWAYS_FALSE((i) -> false);
 
-		private Predicate<Object> predicate;
+	private Predicate<Object> predicate;
 
-		ObjectPredicates(Predicate<Object> predicate)
+	ObjectPredicates(Predicate<Object> predicate)
 		{
 			this.predicate = predicate;
 		}
 
-		@Override
+	@Override
 		public boolean test(Object o)
 		{
 			return predicate.test(o);
 		}
 
-		@SuppressWarnings("unchecked") // safe contravariant cast as all ObjectPredicates
+	@SuppressWarnings("unchecked") // safe contravariant cast as all ObjectPredicates
 		<T> Predicate<T> withNarrowedType()
 		{
 			return (Predicate<T>) this;
 		}
+
 	}
 
 	/**

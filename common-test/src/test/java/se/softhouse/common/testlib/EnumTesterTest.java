@@ -55,11 +55,12 @@ public class EnumTesterTest
 		ONE,
 		TWO;
 
-		@Override
+	@Override
 		public String toString()
 		{
 			return TWO.name();
 		}
+
 	}
 
 	@Test
@@ -78,18 +79,16 @@ public class EnumTesterTest
 		}
 	}
 
-	private enum InvalidValueOfEnum
+	private enum InvalidValueOfEnum{ONE,TWO
 	{
-		ONE,
-		TWO
-		{
-			@Override
-			public String toString()
-			{
-				return null;
-			}
-		};
+
+	@Override
+	public String toString()
+	{
+		return null;
 	}
+
+	};}
 
 	@Test
 	public void testThatPackageProtectedValueOfIsNotCallable() throws ClassNotFoundException

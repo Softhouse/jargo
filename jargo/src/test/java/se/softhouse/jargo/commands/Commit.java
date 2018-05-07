@@ -19,11 +19,11 @@ import static se.softhouse.jargo.Arguments.stringArgument;
 import java.io.File;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
-
-import com.google.common.collect.Lists;
 
 public class Commit extends Command
 {
@@ -42,7 +42,7 @@ public class Commit extends Command
 	@Override
 	protected void execute(final ParsedArguments parsedArguments)
 	{
-		repository.commits.add(new Revision(parsedArguments));
+		repository.commits.add(new Revision("Commited stuff", parsedArguments));
 	}
 
 	@Override
@@ -63,12 +63,14 @@ public class Commit extends Command
 		final List<File> files;
 		final boolean amend;
 		final String author;
+		final String message;
 
-		public Revision(final ParsedArguments arguments)
+		public Revision(String message, final ParsedArguments arguments)
 		{
 			amend = arguments.get(AMEND);
 			files = arguments.get(FILES);
 			author = arguments.get(AUTHOR);
+			this.message = message;
 		}
 	}
 }

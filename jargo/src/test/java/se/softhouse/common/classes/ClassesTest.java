@@ -18,11 +18,11 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import se.softhouse.common.testlib.Launcher;
-import se.softhouse.common.testlib.Launcher.LaunchedProgram;
-
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+
+import se.softhouse.common.testlib.Launcher;
+import se.softhouse.common.testlib.Launcher.LaunchedProgram;
 
 /**
  * Tests for {@link Classes}
@@ -34,11 +34,10 @@ public class ClassesTest
 	{
 		LaunchedProgram threadedProgram = Launcher.launch(ExampleProgram.class);
 
-		// TODO(jontejj): add assertion once
-		// http://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021205 has been solved
-		// assertThat(threadedProgram.errors()).as("Errors detected in subprogram: " +
-		// threadedProgram.errors() + ". Debuginfo:"
-		// + threadedProgram.debugInformation()).isEmpty();
+		// If you get problems with this line, try to update your java environment. See
+		// http://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021205 for more details.
+		assertThat(threadedProgram.errors())
+				.as("Errors detected in subprogram: " + threadedProgram.errors() + ". Debuginfo:" + threadedProgram.debugInformation()).isEmpty();
 		assertThat(threadedProgram.output()).isEqualTo("ExampleProgram");
 	}
 
@@ -47,11 +46,10 @@ public class ClassesTest
 	{
 		LaunchedProgram threadedProgram = Launcher.launch(ThreadedProgram.class);
 
-		// TODO(jontejj): add assertion once
-		// http://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021205 has been solved
-		// assertThat(threadedProgram.errors()).as("Errors detected in subprogram: " +
-		// threadedProgram.errors() + ". Debuginfo:"
-		// + threadedProgram.debugInformation()).isEmpty();
+		// If you get problems with this line, try to update your java environment. See
+		// http://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021205 for more details.
+		assertThat(threadedProgram.errors())
+				.as("Errors detected in subprogram: " + threadedProgram.errors() + ". Debuginfo:" + threadedProgram.debugInformation()).isEmpty();
 		assertThat(threadedProgram.output()).isEqualTo("ThreadedProgram");
 	}
 

@@ -32,6 +32,7 @@ public final class ExpectedTexts
 	 */
 	public static String expected(String testName)
 	{
+
 		String expectedUsage = ResourceLoader.get("/jargo/usage_texts/" + testName + ".txt");
 
 		// Avoids having RemoteTestRunner or ForkedBooter in the .txt files. As the main class is

@@ -12,10 +12,11 @@
  */
 package se.softhouse.common.guavaextensions;
 
-import se.softhouse.common.strings.StringsUtil;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
+import static se.softhouse.common.strings.StringsUtil.UTF8;
 
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,12 +24,13 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
-import static se.softhouse.common.guavaextensions.Preconditions2.check;
-import static se.softhouse.common.strings.StringsUtil.UTF8;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
+
+import se.softhouse.common.strings.StringsUtil;
 
 /**
  * Gives you static access to additional implementations of the {@link Function} interface, as a
@@ -146,6 +148,16 @@ public final class Functions2
 				return null;
 			return Collections.unmodifiableList(value);
 		}
+	}
+
+	/**
+	 * Creates a {@link Function} that wraps {@link Set}s with
+	 * {@link Collections#unmodifiableSet(Set)}
+	 */
+	@Nonnull
+	public static <E> Function<Set<E>, Set<E>> unmodifiableSet()
+	{
+		return s -> Collections.unmodifiableSet(s);
 	}
 
 	/**

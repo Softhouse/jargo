@@ -12,35 +12,46 @@
  */
 package se.softhouse.jargo.commands;
 
-import java.util.List;
-
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
 
-public final class ProfilingExecuteCommand extends Command
+public class CommandWithTwoArguments<T, T2> extends Command
 {
-	public int numberOfCallsToExecute;
+	private final Argument<T> arg;
 
-	public ProfilingExecuteCommand(Argument<?> ... args)
-	{
-		super(args);
-	}
+	private final Argument<T2> arg2;
 
-	public ProfilingExecuteCommand(List<Argument<?>> args)
+	public T parsedObject;
+
+	public T2 parsedObjectTwo;
+
+	private final String name;
+
+	public CommandWithTwoArguments(String name, Argument<T> arg, Argument<T2> arg2)
 	{
-		super(args);
+		super(arg, arg2);
+		this.name = name;
+		this.arg = arg;
+		this.arg2 = arg2;
 	}
 
 	@Override
-	public String commandName()
+	protected String commandName()
 	{
-		return "profile";
+		return name;
 	}
 
 	@Override
-	protected void execute(ParsedArguments parsedArguments)
+	public String description()
 	{
-		numberOfCallsToExecute++;
+		return "A command that parses two arguments";
+	}
+
+	@Override
+	protected void execute(ParsedArguments args)
+	{
+		parsedObject = args.get(arg);
+		parsedObjectTwo = args.get(arg2);
 	}
 }

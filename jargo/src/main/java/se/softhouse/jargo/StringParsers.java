@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -48,7 +50,6 @@ import se.softhouse.common.numbers.NumberType;
 import se.softhouse.common.strings.StringBuilders;
 import se.softhouse.jargo.Argument.ParameterArity;
 import se.softhouse.jargo.ArgumentExceptions.MissingParameterException;
-import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
 import se.softhouse.jargo.internal.Texts.UserErrors;
 
 /**
@@ -87,32 +88,35 @@ public final class StringParsers
 		 */
 		STRING
 		{
-			@Override
-			public String parse(String value, Locale locale) throws ArgumentException
-			{
-				return value;
-			}
-		};
 
-		// Put other StringParser<String> parsers here
+	@Override
+	public String parse(String value, Locale locale) throws ArgumentException
+	{
+		return value;
+	}
 
-		@Override
-		public String descriptionOfValidValues(Locale locale)
-		{
-			return "any string";
-		}
+	};
 
-		@Override
-		public String defaultValue()
-		{
-			return "";
-		}
+	// Put other StringParser<String> parsers here
 
-		@Override
-		public String metaDescription()
-		{
-			return "<string>";
-		}
+	@Override
+	public String descriptionOfValidValues(Locale locale)
+	{
+		return "any string";
+	}
+
+	@Override
+	public String defaultValue()
+	{
+		return "";
+	}
+
+	@Override
+	public String metaDescription()
+	{
+		return "<string>";
+	}
+
 	}
 
 	/**
@@ -444,6 +448,79 @@ public final class StringParsers
 		public String toString()
 		{
 			return descriptionOfValidValues(Locale.US);
+		}
+	}
+
+	static final class TransformingParser<T, F> extends InternalStringParser<F>
+	{
+		private final Function<T, F> transformer;
+		private final InternalStringParser<T> firstParser;
+		private final Predicate<? super T> limiter;
+
+		TransformingParser(InternalStringParser<T> firstParser, Function<T, F> transformer, Predicate<? super T> limiter)
+		{
+			this.firstParser = requireNonNull(firstParser);
+			this.transformer = requireNonNull(transformer);
+			this.limiter = requireNonNull(limiter);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		F parse(ArgumentIterator arguments, F previousOccurance, Argument<?> argumentSettings, Locale locale) throws ArgumentException
+		{
+			T first = firstParser.parse(arguments, null, argumentSettings, locale);
+			if(!limiter.test(first))
+				throw withMessage(format(UserErrors.DISALLOWED_VALUE, first, argumentSettings.descriptionOfValidValues(locale)));
+
+			F result = transformer.apply(first);
+			if(previousOccurance instanceof Collection && result instanceof Collection && argumentSettings.isAllowedToRepeat())
+			{
+				((Collection<Object>) previousOccurance).addAll((Collection<Object>) result);
+				return previousOccurance;
+			}
+			return result;
+		}
+
+		@Override
+		String descriptionOfValidValues(Argument<?> argumentSettings, Locale locale)
+		{
+			if(limiter != Predicates2.alwaysTrue())
+			{
+				String attemptAtGoodDescription = limiter.toString();
+				if(!attemptAtGoodDescription.contains("$$Lambda$"))
+					return attemptAtGoodDescription;
+			}
+			return firstParser.descriptionOfValidValues(argumentSettings, locale);
+		}
+
+		@Override
+		String metaDescriptionInLeftColumn(Argument<?> argumentSettings)
+		{
+			return firstParser.metaDescriptionInLeftColumn(argumentSettings);
+		}
+
+		@Override
+		String metaDescriptionInRightColumn(Argument<?> argumentSettings)
+		{
+			return firstParser.metaDescriptionInRightColumn(argumentSettings);
+		}
+
+		@Override
+		String metaDescription(Argument<?> argumentSettings)
+		{
+			return firstParser.metaDescription(argumentSettings);
+		}
+
+		@Override
+		F defaultValue()
+		{
+			return transformer.apply(firstParser.defaultValue());
+		}
+
+		@Override
+		ParameterArity parameterArity()
+		{
+			return firstParser.parameterArity();
 		}
 	}
 

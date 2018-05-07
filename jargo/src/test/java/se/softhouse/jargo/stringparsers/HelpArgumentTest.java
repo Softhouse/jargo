@@ -29,6 +29,7 @@ import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
 import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.ParsedArguments;
 import se.softhouse.jargo.commands.Build;
 import se.softhouse.jargo.commands.CommandWithOneIndexedArgument;
 import se.softhouse.jargo.internal.Texts.UsageTexts;
@@ -198,5 +199,13 @@ public class HelpArgumentTest
 		{
 			assertThat(expected.getMessage()).isEqualTo("-h is handled by several arguments");
 		}
+	}
+
+	@Test
+	public void testThatEndOfOptionsOverridesHelp() throws Exception
+	{
+		CommandLineParser parser = CommandLineParser.withArguments(HELP, STRING);
+		ParsedArguments parsedArguments = parser.parse("--", "-h");
+		assertThat(parsedArguments.get(STRING)).isEqualTo("-h");
 	}
 }

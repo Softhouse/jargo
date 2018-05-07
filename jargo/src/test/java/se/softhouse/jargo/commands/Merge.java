@@ -12,35 +12,24 @@
  */
 package se.softhouse.jargo.commands;
 
-import java.util.List;
-
-import se.softhouse.jargo.Argument;
-import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
 
-public final class ProfilingExecuteCommand extends Command
+public class Merge extends Commit
 {
-	public int numberOfCallsToExecute;
-
-	public ProfilingExecuteCommand(Argument<?> ... args)
+	public Merge(final Repository repo)
 	{
-		super(args);
-	}
-
-	public ProfilingExecuteCommand(List<Argument<?>> args)
-	{
-		super(args);
+		super(repo);
 	}
 
 	@Override
-	public String commandName()
+	protected void execute(final ParsedArguments parsedArguments)
 	{
-		return "profile";
+		repository.commits.add(new Revision(parsedArguments.get(Git.MESSAGE), parsedArguments));
 	}
 
 	@Override
-	protected void execute(ParsedArguments parsedArguments)
+	public String description()
 	{
-		numberOfCallsToExecute++;
+		return "Merges to a repository";
 	}
 }

@@ -12,24 +12,26 @@
  */
 package se.softhouse.jargo;
 
-import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static se.softhouse.common.guavaextensions.Preconditions2.check;
 import static se.softhouse.common.guavaextensions.Predicates2.in;
 import static se.softhouse.jargo.Argument.IS_REQUIRED;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
 
 /**
  * Holds parsed arguments for a {@link CommandLineParser#parse(String...)} invocation.
@@ -43,6 +45,12 @@ public final class ParsedArguments
 	 */
 	@Nonnull private final Map<Argument<?>, Object> parsedArguments = new LinkedHashMap<>();
 	@Nonnull private final Set<Argument<?>> allArguments;
+
+	/**
+	 * This gives commands access to any args to the root/parent command arguments
+	 */
+	private Optional<ParsedArguments> rootArgs = Optional.empty();
+
 	/**
 	 * Keeps a running total of how many indexed arguments that have been parsed
 	 */
@@ -66,7 +74,7 @@ public final class ParsedArguments
 	{
 		if(!wasGiven(argumentToFetch))
 		{
-			check(allArguments.contains(argumentToFetch), ProgrammaticErrors.ILLEGAL_ARGUMENT, argumentToFetch);
+			check(handlesArgument(argumentToFetch), ProgrammaticErrors.ILLEGAL_ARGUMENT, argumentToFetch);
 			return argumentToFetch.defaultValue();
 		}
 		return getValue(argumentToFetch);
@@ -80,7 +88,12 @@ public final class ParsedArguments
 	 */
 	public boolean wasGiven(Argument<?> argument)
 	{
-		return parsedArguments.containsKey(requireNonNull(argument));
+		return parsedArguments.containsKey(requireNonNull(argument)) || rootArgs.map(args -> args.wasGiven(argument)).orElse(false);
+	}
+
+	private boolean handlesArgument(Argument<?> arg)
+	{
+		return allArguments.contains(arg) || rootArgs.map(args -> args.handlesArgument(arg)).orElse(false);
 	}
 
 	@Override
@@ -130,10 +143,14 @@ public final class ParsedArguments
 
 	<T> T getValue(final Argument<T> definition)
 	{
-		// Safe because put guarantees that the map is heterogeneous
-		@SuppressWarnings("unchecked")
-		T value = (T) parsedArguments.get(definition);
-		return value;
+		if(parsedArguments.containsKey(definition))
+		{
+			// Safe because put guarantees that the map is heterogeneous
+			@SuppressWarnings("unchecked")
+			T value = (T) parsedArguments.get(definition);
+			return value;
+		}
+		return rootArgs.map(args -> args.getValue(definition)).orElse(null);
 	}
 
 	Collection<Argument<?>> requiredArgumentsLeft()
@@ -174,5 +191,15 @@ public final class ParsedArguments
 			}
 		}
 		return validArguments;
+	}
+
+	void setRootArgs(ParsedArguments rootArgs)
+	{
+		// If this has been set by a parent command it should not be cleared, this makes it possible to have
+		// access to arguments to a chain of parent commands
+		if(!this.rootArgs.isPresent())
+		{
+			this.rootArgs = Optional.of(rootArgs);
+		}
 	}
 }

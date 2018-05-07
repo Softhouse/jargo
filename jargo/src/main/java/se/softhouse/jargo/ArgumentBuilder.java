@@ -27,11 +27,13 @@ import static se.softhouse.jargo.StringParsers.optionParser;
 import static se.softhouse.jargo.StringParsers.stringParser;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -57,6 +59,7 @@ import se.softhouse.jargo.StringParsers.KeyValueParser;
 import se.softhouse.jargo.StringParsers.RepeatedArgumentParser;
 import se.softhouse.jargo.StringParsers.StringParserBridge;
 import se.softhouse.jargo.StringParsers.StringSplitterParser;
+import se.softhouse.jargo.StringParsers.TransformingParser;
 import se.softhouse.jargo.StringParsers.VariableArityParser;
 import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
 import se.softhouse.jargo.internal.Texts.UserErrors;
@@ -670,6 +673,26 @@ public abstract class ArgumentBuilder<SELF extends ArgumentBuilder<SELF, T>, T>
 		return new RepeatedArgumentBuilder<T>(this);
 	}
 
+	/**
+	 * Makes it possible to chain together different transformation / map / conversion operations
+	 * 
+	 * <pre class="prettyprint">
+	 * <code class="language-java">
+	 * int size = Arguments.stringArgument("--foo").transform(String::length).parse("--foo", "abcd");
+	 * assertThat(size).isEqualTo(4);
+	 * </code>
+	 * </pre>
+	 * 
+	 * @param transformer the function that takes a value of the previous type (like String in the
+	 *            example), and converts it into another type of value
+	 * @return a new (more specific) builder
+	 */
+	@CheckReturnValue
+	public <F> TransformingArgumentBuilder<F> transform(Function<T, F> transformer)
+	{
+		return new TransformingArgumentBuilder<F>(this, transformer);
+	}
+
 	@Override
 	public String toString()
 	{
@@ -771,6 +794,13 @@ public abstract class ArgumentBuilder<SELF extends ArgumentBuilder<SELF, T>, T>
 		{
 			check(!name.contains(" "), "Detected a space in %s, argument names must not have spaces in them", name);
 		}
+	}
+	
+	@Nonnull Supplier<? extends T> defaultValueSupplierOrFromParser()
+	{
+		if(defaultValueSupplier != null)
+			return defaultValueSupplier;
+		return (Supplier<T>) internalParser()::defaultValue;
 	}
 
 	/**
@@ -942,9 +972,9 @@ public abstract class ArgumentBuilder<SELF extends ArgumentBuilder<SELF, T>, T>
 		}
 	}
 
-	private static class ListArgumentBuilder<BUILDER extends ListArgumentBuilder<BUILDER, T>, T> extends InternalArgumentBuilder<BUILDER, List<T>>
+	public static class ListArgumentBuilder<BUILDER extends ListArgumentBuilder<BUILDER, T>, T> extends InternalArgumentBuilder<BUILDER, List<T>>
 	{
-		ListArgumentBuilder(InternalStringParser<List<T>> parser)
+		private ListArgumentBuilder(InternalStringParser<List<T>> parser)
 		{
 			super(parser);
 		}
@@ -962,6 +992,17 @@ public abstract class ArgumentBuilder<SELF extends ArgumentBuilder<SELF, T>, T>
 			{
 				defaultValueDescriber(Describers.listDescriber(builder.defaultValueDescriber));
 			}
+		}
+
+		/**
+		 * Transforms this argument from a {@link List} to a {@link Set}. Thereby removing any duplicate values, given that
+		 * {@link Object#equals(Object)} and {@link Object#hashCode()} has been implemented correctly by the element type.
+		 * 
+		 * @return a {@link se.softhouse.jargo.ArgumentBuilder.TransformingArgumentBuilder} that you can continue to configure
+		 */
+		public TransformingArgumentBuilder<Set<T>> unique()
+		{
+			return transform(list -> (Set<T>) new HashSet<>(list)).finalizeWith(Functions2.<T>unmodifiableSet());
 		}
 	}
 
@@ -1287,6 +1328,50 @@ public abstract class ArgumentBuilder<SELF extends ArgumentBuilder<SELF, T>, T>
 		public ArityArgumentBuilder<List<T>> variableArity()
 		{
 			throw new IllegalStateException("You can't use both splitWith and variableArity");
+		}
+	}
+
+	/**
+	 * An intermediate builder used by {@link #transform(Function)}. It's used to switch the
+	 * {@code <T>}
+	 * argument of the previous builder to {@code <F>} and to indicate invalid call orders.
+	 * 
+	 * @param <F> The new type
+	 */
+	@NotThreadSafe
+	public static final class TransformingArgumentBuilder<F> extends InternalArgumentBuilder<TransformingArgumentBuilder<F>, F>
+	{
+		private <T> TransformingArgumentBuilder(final ArgumentBuilder<?, T> builder, final Function<T, F> transformer)
+		{
+			super(new TransformingParser<T, F>(builder.internalParser(), transformer, builder.limiter()));
+			copy(builder);
+
+			Supplier<? extends T> defaultValueSupplier = builder.defaultValueSupplierOrFromParser();
+			defaultValueSupplier(Suppliers2.wrapWithPredicateAndTransform(defaultValueSupplier, transformer, builder.limiter()));
+
+			if(builder.defaultValueDescriber() != null)
+			{
+				defaultValueDescriber(new BeforeTransformationDescriber<>(defaultValueSupplier, builder.defaultValueDescriber()));
+			}
+		}
+	}
+
+	private static final class BeforeTransformationDescriber<F> implements Describer<Object>
+	{
+		private final Supplier<? extends F> valueProvider;
+		private final Describer<F> beforeDescriber;
+
+		BeforeTransformationDescriber(Supplier<? extends F> valueProvider, Describer<F> beforeDescriber)
+		{
+			this.valueProvider = requireNonNull(valueProvider);
+			this.beforeDescriber = requireNonNull(beforeDescriber);
+		}
+
+		@Override
+		public String describe(Object value, Locale inLocale)
+		{
+			F beforeValue = valueProvider.get();
+			return beforeDescriber.apply(beforeValue);
 		}
 	}
 }

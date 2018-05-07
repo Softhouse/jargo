@@ -7,6 +7,12 @@ Arguments:
 --foo <string> <string> <string>    MetaDescShouldBeDisplayedThreeTimes
                                     <string>: any string
                                     Default: , , 
+--trans <integer> ...               MetaDescShouldIndicateVariableAmount
+                                    <integer>: -2,147,483,648 to 2,147,483,647
+                                    Default: Empty list
+--trans-two <integer> <integer>     MetaDescShouldBeDisplayedTwoTimes
+                                    <integer>: -2,147,483,648 to 2,147,483,647
+                                    Default: 0, 0
 --zoo <integer> ...                 MetaDescShouldIndicateVariableAmount
                                     <integer>: -2,147,483,648 to 2,147,483,647
                                     Default: Empty list

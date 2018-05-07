@@ -12,61 +12,38 @@
  */
 package se.softhouse.jargo.nonfunctional;
 
-import java.io.FilePermission;
-import java.net.NetPermission;
-import java.security.Permission;
-import java.util.PropertyPermission;
-import java.util.Set;
+import static org.fest.assertions.Assertions.assertThat;
 
-import com.google.common.collect.Sets;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+
+import se.softhouse.common.testlib.Launcher;
+import se.softhouse.common.testlib.Launcher.LaunchedProgram;
 
 /**
- * Tests that argument parser works with an extremely restrictive {@link SecurityManager} installed.
+ * Tests that argument parser works with the default {@link SecurityManager} activated.
  */
-public final class SecurityTest
+public final class SecurityTest extends ExhaustiveProgram
 {
-	private SecurityTest()
-	{
-	}
-
 	public static void main(String[] args) throws Throwable
 	{
-		// TODO(jontejj): introduce this as a security test
-		System.setSecurityManager(new SecurityManager(){
-			@Override
-			public void checkPermission(Permission perm)
-			{
-				if(perm instanceof FilePermission)
-				{
-					// To load the java class
-					if(perm.getActions().equals("read"))
-						return;
-				}
-				else if(perm instanceof NetPermission)
-				{
-					// To load the java class
-					if(perm.getName().equals("specifyStreamHandler"))
-						return;
-				}
-				else if(perm instanceof RuntimePermission)
-				{
-					// To shutdown the executor
-					if(perm.getName().equals("modifyThread"))
-						return;
-				}
-				else if(perm instanceof PropertyPermission)
-				{
-					if(READABLE_PROPERTIES.contains(perm.getName()) && perm.getActions().equals("read"))
-						return;
-				}
-				throw new SecurityException("Permission: " + perm + " not granted");
-			}
-		});
-		ConcurrencyTest test = new ConcurrencyTest();
-		test.testThatDifferentArgumentsCanBeParsedConcurrently();
+		new SecurityTest().run();
 	}
 
-	static final Set<String> READABLE_PROPERTIES = Sets.newHashSet(	"user.timezone", "user.country", "java.home",
-																	"org.joda.time.DateTimeZone.Provider", "org.joda.time.DateTimeZone.NameProvider",
-																	"sun.timezone.ids.oldmapping", "os.name");
+	private void run()
+	{
+		ArgumentParseRunner runner = new ArgumentParseRunner(1);
+		runner.run();
+	}
+
+	@Test
+	public void testThatProgramCanBeRunWithSecuritManagerActivated() throws Exception
+	{
+		ImmutableList<String> secureVmArgs = ImmutableList.of(	"-Djava.security.manager",
+																"-Djava.security.policy=src/test/resources/jargo/security.policy");
+		LaunchedProgram launchedProgram = Launcher.launch(secureVmArgs, SecurityTest.class, "");
+		assertThat(launchedProgram.errors()).isEmpty();
+		assertThat(launchedProgram.output()).isEmpty();
+	}
 }

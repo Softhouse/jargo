@@ -40,5 +40,7 @@ Arguments:
                                                         Default: Empty list
 --string <string>                                       <string>: any string
                                                         Default: 
+--transformed <string>                                  <string>: any string
+                                                        Default: 0
 --variableArity <integer> ...                           <integer>: -2,147,483,648 to 2,147,483,647
                                                         Default: Empty list

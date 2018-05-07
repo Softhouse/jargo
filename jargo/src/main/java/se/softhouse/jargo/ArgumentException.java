@@ -157,7 +157,7 @@ public abstract class ArgumentException extends RuntimeException
 
 	private String usageReference()
 	{
-		return usageReferenceName;
+		return usageReferenceName != null ? usageReferenceName : "";
 	}
 
 	/**

@@ -22,12 +22,12 @@ import java.util.List;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
 import se.softhouse.jargo.StringParsers;
 import se.softhouse.jargo.Usage;
 import se.softhouse.jargo.internal.Texts.UserErrors;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests for {@link Arguments#enumArgument(Class, String...)} and
@@ -145,10 +145,9 @@ public class EnumArgumentTest
 	{
 		ONE;
 
-		@Override
-		public String toString()
-		{
-			throw new IllegalStateException("Nefarious behavior not avoided");
-		}
+	@Override
+	public String toString()
+	{
+		throw new IllegalStateException("Nefarious behavior not avoided");
 	}
-}
+}}

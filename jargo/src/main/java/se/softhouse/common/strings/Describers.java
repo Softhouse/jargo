@@ -141,21 +141,22 @@ public final class Describers
 	{
 		ENABLED_DISABLED
 		{
-			@Override
-			public String describe(Boolean value, Locale inLocale)
-			{
-				return value ? "enabled" : "disabled";
-			}
-		},
-		ON_OFF
-		{
-			@Override
-			public String describe(Boolean value, Locale inLocale)
-			{
-				return value ? "on" : "off";
-			}
-		};
+
+	@Override
+	public String describe(Boolean value, Locale inLocale)
+	{
+		return value ? "enabled" : "disabled";
 	}
+
+	},ON_OFF{
+
+	@Override
+	public String describe(Boolean value, Locale inLocale)
+	{
+		return value ? "on" : "off";
+	}
+
+	};}
 
 	/**
 	 * Describes {@link Number}s in a {@link Locale} sensitive manner using {@link NumberFormat}.

@@ -12,17 +12,22 @@
  */
 package se.softhouse.common.guavaextensions;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static se.softhouse.common.guavaextensions.Preconditions2.check;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import se.softhouse.jargo.internal.Texts.UserErrors;
 
 /**
  * Additional implementations of the {@link Supplier} interface
@@ -98,6 +103,46 @@ public final class Suppliers2
 		{
 			return instance;
 		}
+	}
+
+	/**
+	 * @param origin the supplier that provides the original value to check and transform
+	 * @param transformer a function that will be used to transform the origin value to something
+	 *            else
+	 * @param predicate function that will be used to check for correctness
+	 * @return a wrapping {@link Supplier}
+	 */
+	@CheckReturnValue
+	public static <T, F> Supplier<F> wrapWithPredicateAndTransform(Supplier<? extends T> origin, Function<T, F> transformer,
+			Predicate<? super T> predicate)
+	{
+		return new PredicatedAndTransformedSupplier<T, F>(origin, transformer, predicate);
+	}
+
+	private static final class PredicatedAndTransformedSupplier<T, F> implements Supplier<F>
+	{
+		private final Supplier<? extends T> origin;
+		private final Function<T, F> transformer;
+		private final Predicate<? super T> predicate;
+
+		private PredicatedAndTransformedSupplier(Supplier<? extends T> origin, Function<T, F> transformer, Predicate<? super T> predicate)
+		{
+			this.origin = requireNonNull(origin);
+			this.transformer = requireNonNull(transformer);
+			this.predicate = requireNonNull(predicate);
+		}
+
+		@Override
+		public F get()
+		{
+			T originValue = origin.get();
+			if(!predicate.test(originValue))
+				throw new IllegalArgumentException(format(UserErrors.DISALLOWED_VALUE, originValue, predicate));
+			return transformer.apply(originValue);
+		}
+
+		//
+
 	}
 
 	/**

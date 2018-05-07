@@ -8,7 +8,7 @@
 	<groupId>se.softhouse</groupId>
 	<artifactId>jargo-parent</artifactId>
 	<description>Jargo maven parent</description>
-	<version>0.4.5-SNAPSHOT</version>
+	<version>0.4.11-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<url>https://github.com/Softhouse/jargo</url>
 	<properties>
@@ -127,13 +127,13 @@
 				<executions>
 					<execution>
 						<goals>
-							<goal>validate</goal>
+							<!-- <goal>validate</goal> -->
 							<!-- Enable this if you want to format at compile time (don't commit 
 								with this goal enabled though). It's better to configure your code editor 
 								to be compliant with code-formatter.xml instead. If that's annoying, 
 								set up a maven profile to enable "format" and make sure to run mvn compile before 
 								commiting. -->
-							<!-- <goal>format</goal> -->
+							<goal>format</goal>
 						</goals>
 					</execution>
 				</executions>
@@ -154,17 +154,14 @@
 						several child-processes -->
 					<forkCount>1</forkCount>
 					<reuseForks>true</reuseForks>
-					<!-- Workaround for bug https://github.com/jacoco/jacoco/pull/40 -->
-					<argLine>${coverageAgent}</argLine>
 				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.4.201502262128</version>
+				<version>0.8.1</version>
 				<configuration>
-					<!-- Workaround for bug https://github.com/jacoco/jacoco/pull/40 -->
-					<propertyName>coverageAgent</propertyName>
+				    <destFile>${user.home}/jargo/jacoco.exec</destFile>
 				</configuration>
 				<executions>
 					<execution>

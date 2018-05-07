@@ -25,6 +25,7 @@ import static se.softhouse.jargo.utils.ExpectedTexts.expected;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
@@ -37,6 +38,7 @@ import se.softhouse.common.strings.Describers;
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentBuilder.CommandBuilder;
 import se.softhouse.jargo.ArgumentException;
+import se.softhouse.jargo.Arguments;
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.CommandLineParser;
 import se.softhouse.jargo.ParsedArguments;
@@ -44,6 +46,7 @@ import se.softhouse.jargo.Usage;
 import se.softhouse.jargo.commands.Build.BuildTarget;
 import se.softhouse.jargo.commands.Commit.Repository;
 import se.softhouse.jargo.commands.Commit.Revision;
+import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
 import se.softhouse.jargo.internal.Texts.UserErrors;
 
 /**
@@ -129,6 +132,7 @@ public class CommandTest
 	{
 		START
 		{
+
 			@Override
 			public void run()
 			{
@@ -140,6 +144,7 @@ public class CommandTest
 			{
 				return "Starts the service";
 			}
+
 		};
 	}
 
@@ -323,7 +328,7 @@ public class CommandTest
 		catch(ArgumentException expected)
 		{
 			assertThat(expected).hasMessage("Missing second <integer> parameter for two_args");
-			assertThat(executedCommands).containsExactly(first, third);
+			assertThat(executedCommands).isEmpty();
 		}
 	}
 
@@ -431,23 +436,6 @@ public class CommandTest
 			assertThat(expected.getMessage()).startsWith("Unexpected argument: -limit");
 			assertThat(profilingCommand.numberOfCallsToExecute).as("profile should not have been called as -limit should be an invalid argument: ")
 					.isZero();
-		}
-	}
-
-	@Test
-	public void testThatInvalidParameterDoesNotStopEarlierCommandsFromBeingExecuted() throws Exception
-	{
-		ProfilingExecuteCommand profilingCommand = new ProfilingExecuteCommand();
-		try
-		{
-			CommandLineParser.withArguments(command(profilingCommand).repeated().build()).parse("profile", "profile", "-limit");
-			fail("-limit should not be handled by profile command");
-		}
-		catch(ArgumentException expected)
-		{
-			assertThat(expected.getMessage()).startsWith("Unexpected argument: -limit");
-			assertThat(profilingCommand.numberOfCallsToExecute)
-					.as("profile should have been called once since previous commands should be executed once a new command is given").isEqualTo(1);
 		}
 	}
 
@@ -597,6 +585,254 @@ public class CommandTest
 		}
 		catch(IllegalStateException expected)
 		{
+		}
+	}
+
+	public static Argument<String> MAIN_ARG = Arguments.stringArgument("-t").build();
+
+	@Test
+	public void testThatSubcommandsCanAccessArgumentsToMainCommandLineParser() throws Exception
+	{
+		SubcommandAccessingParentArgument subCommand = new SubcommandAccessingParentArgument();
+		CommandLineParser.withArguments(MAIN_ARG).andCommands(subCommand).parse("-t", "test", "sub");
+		assertThat(subCommand.mainArg).isEqualTo("test");
+	}
+
+	@Test
+	public void testThatSubcommandsCanAccessArgumentsToParentCommand() throws Exception
+	{
+		SubcommandAccessingParentArgument subCommand = new SubcommandAccessingParentArgument();
+		List<Argument<?>> subCommandsOrArgs = Command.subCommands(subCommand);
+		subCommandsOrArgs.add(MAIN_ARG);
+		Command mainCommand = new Command(subCommandsOrArgs){
+			@Override
+			protected void execute(ParsedArguments parsedArguments)
+			{
+
+			}
+
+			@Override
+			protected String commandName()
+			{
+				return "main";
+			}
+		};
+
+		CommandLineParser.withCommands(mainCommand).parse("main", "-t", "test", "sub");
+		assertThat(subCommand.mainArg).isEqualTo("test");
+	}
+
+	@Test
+	public void testThatInvalidParameterStopsEarlierCommandsFromBeingExecuted() throws Exception
+	{
+		ProfilingExecuteCommand profilingCommand = new ProfilingExecuteCommand();
+		try
+		{
+			CommandLineParser.withArguments(command(profilingCommand).repeated().build()).parse("profile", "profile", "-limit");
+			fail("-limit should not be handled by profile command");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected.getMessage()).startsWith("Unexpected argument: -limit");
+			assertThat(profilingCommand.numberOfCallsToExecute)
+					.as("profile should not have been called since either all commands should be executed or none").isZero();
+		}
+	}
+
+	@Test
+	public void testThatMissingArgsForMainStopsSubSubcommandFromBeingExecuted() throws Exception
+	{
+		Argument<String> mainArg = Arguments.stringArgument("-a").required().build();
+		ProfilingExecuteCommand subcommand = new ProfilingExecuteCommand();
+		ProfilingExecuteCommand command = new ProfilingExecuteCommand(Command.subCommands(subcommand));
+
+		try
+		{
+			CommandLineParser.withArguments(mainArg).andCommands(command).parse("profile", "profile");
+			fail("Missing arg not detected");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(subcommand.numberOfCallsToExecute).isZero();
+		}
+	}
+
+	@Test
+	public void testArgumentVisibilityBetweenMainArgAndSubArgAndThatRepeatedValuesAreRejected() throws Exception
+	{
+		SubcommandAccessingParentArgument subCommand = new SubcommandAccessingParentArgument();
+		List<Argument<?>> subCommandsOrArgs = Command.subCommands(subCommand);
+		subCommandsOrArgs.add(MAIN_ARG);
+		AtomicReference<ParsedArguments> mainCommandParsedArguments = new AtomicReference<ParsedArguments>(null);
+		Command mainCommand = new Command(subCommandsOrArgs){
+			@Override
+			protected void execute(ParsedArguments parsedArguments)
+			{
+				mainCommandParsedArguments.set(parsedArguments);
+			}
+
+			@Override
+			protected String commandName()
+			{
+				return "main";
+			}
+		};
+
+		CommandLineParser parser = CommandLineParser.withArguments(MAIN_ARG).andCommands(mainCommand);
+		ParsedArguments parsedArguments = parser.parse("main", "-t", "1", "sub");
+		assertThat(subCommand.mainArg).isEqualTo("1");
+		assertThat(mainCommandParsedArguments.get().get(MAIN_ARG)).isEqualTo("1");
+		// The root command does not intersect with multiple levels of commands
+		assertThat(parsedArguments.get(MAIN_ARG)).isEqualTo("");
+
+		// Test that default values for main arguments work
+		parsedArguments = parser.parse("main", "sub");
+		assertThat(subCommand.mainArg).isEqualTo("");
+
+		parsedArguments = parser.parse("main", "sub", "-t", "2");
+		assertThat(subCommand.mainArg).isEqualTo("2");
+		// argument needs to be repeated for each subcommand on the same level
+		assertThat(parsedArguments.get(MAIN_ARG)).isEqualTo("");
+
+		try
+		{
+			parsedArguments = parser.parse("main", "-t", "1", "sub", "-t", "2");
+			fail("-t is not repeated. Should not be allowed");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected).hasMessage(String.format(UserErrors.DISALLOWED_REPETITION, "-t"));
+		}
+
+		try
+		{
+			parser = CommandLineParser.withCommands(mainCommand);
+			parser.parse("main", "sub", "-t", "2").get(MAIN_ARG);
+			fail("MAIN_ARG is not part of the root args, so it shouldn't be visible there");
+		}
+		catch(IllegalArgumentException expected)
+		{
+			assertThat(expected).hasMessage(String.format(ProgrammaticErrors.ILLEGAL_ARGUMENT, "-t"));
+		}
+	}
+
+	@Test
+	public void testThatTwoSubcommandsCanGetDifferentValuesForTheSameArgumentName() throws Exception
+	{
+		Argument<String> commonArg = Arguments.stringArgument("-t").build();
+		CommandWithArgument<String> commandOne = new CommandWithArgument<>("command-one", commonArg);
+		CommandWithArgument<String> commandTwo = new CommandWithArgument<String>("command-two", commonArg);
+		CommandLineParser parser = CommandLineParser.withCommands(commandOne, commandTwo);
+		parser.parse("command-one", "-t", "1", "command-two", "-t", "2");
+		assertThat(commandOne.parsedObject).isEqualTo("1");
+		assertThat(commandTwo.parsedObject).isEqualTo("2");
+
+	}
+
+	@Test
+	public void testThatCorrectNameAppearsForMissingArgToCommand() throws Exception
+	{
+		Argument<String> firstArg = Arguments.stringArgument("-s").build();
+		Argument<String> secondArg = Arguments.stringArgument("-t").required().build();
+		CommandWithTwoArguments<String, String> command = new CommandWithTwoArguments<>("command", firstArg, secondArg);
+		CommandLineParser parser = CommandLineParser.withCommands(command);
+		try
+		{
+			parser.parse("command", "-s", "hello");
+			fail("-t should be reported as missing");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected).hasMessage(String.format(UserErrors.MISSING_COMMAND_ARGUMENTS, "command", "[-t]"));
+		}
+	}
+
+	@Test
+	public void testThatCorrectNameAppearsForMissingIndexedArgToCommand() throws Exception
+	{
+		Argument<String> firstArg = Arguments.stringArgument("-s").build();
+		Argument<String> secondArg = Arguments.stringArgument().required().build();
+		CommandWithTwoArguments<String, String> command = new CommandWithTwoArguments<>("command", firstArg, secondArg);
+		CommandLineParser parser = CommandLineParser.withCommands(command);
+		try
+		{
+			parser.parse("command", "-s", "hello");
+			fail("secondArg should be reported as missing");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected).hasMessage(String.format(UserErrors.MISSING_COMMAND_ARGUMENTS, "command", "[<string>]"));
+		}
+	}
+
+	@Test
+	public void testThatMainArgsCanBeSpecifiedInTheMiddleOfCommandArguments() throws Exception
+	{
+		Argument<String> mainFirstArg = Arguments.stringArgument("--main").build();
+		Argument<String> mainSecondArg = Arguments.stringArgument("-m").build();
+
+		Argument<String> firstCommandArg = Arguments.stringArgument("--sub").build();
+		Argument<String> secondCommandArg = Arguments.stringArgument("-s").build();
+		CommandWithTwoArguments<String, String> command = new CommandWithTwoArguments<>("command", firstCommandArg, secondCommandArg);
+		CommandLineParser parser = CommandLineParser.withArguments(mainFirstArg, mainSecondArg).andCommands(command);
+		ParsedArguments parsedArguments = parser.parse("command", "--main", "1", "--sub", "2", "-m", "3", "-s", "4");
+		assertThat(command.parsedObject).isEqualTo("2");
+		assertThat(command.parsedObjectTwo).isEqualTo("4");
+		assertThat(parsedArguments.get(mainFirstArg)).isEqualTo("1");
+		assertThat(parsedArguments.get(mainSecondArg)).isEqualTo("3");
+	}
+
+	@Test
+	public void testThatSubcommandsAreSuggested() throws Exception
+	{
+		Repository repo = new Repository();
+		CommandLineParser git = CommandLineParser.withCommands(new Git(repo));
+		try
+		{
+			git.parse("git", "lo");
+			fail("log should be suggested");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected).hasMessage(String.format(UserErrors.SUGGESTION, "lo", "log"));
+
+		}
+	}
+
+	@Test
+	public void testThatDefaultValuesForMainArgsCanBeAccessedFromSubSubcommand() throws Exception
+	{
+		Repository repo = new Repository();
+		CommandLineParser git = CommandLineParser.withCommands(new Git(repo)).andArguments(Git.MESSAGE);
+		git.parse("git", "merge", "--author=merge-person@company.org");
+		assertThat(repo.commits).hasSize(1);
+		assertThat(repo.commits.get(0).message).isEqualTo("");
+	}
+
+	@Test
+	public void testThatRepeatableWorksWithCommands() throws Exception
+	{
+		ProfilingExecuteCommand repeatable = new ProfilingExecuteCommand();
+		ProfilingExecuteCommand notRepeatable = new ProfilingExecuteCommand();
+		CommandLineParser repeater = CommandLineParser.withArguments(	Arguments.command(repeatable).repeated().build(),
+																		Arguments.command(notRepeatable).names("-p").build());
+		repeater.parse("profile", "profile", "-p");
+		assertThat(repeatable.numberOfCallsToExecute).isEqualTo(2);
+		assertThat(notRepeatable.numberOfCallsToExecute).isEqualTo(1);
+
+		repeatable.numberOfCallsToExecute = 0;
+		notRepeatable.numberOfCallsToExecute = 0;
+		try
+		{
+			repeater.parse("profile", "profile", "-p", "-p");
+			fail("-p should not be allowed to be repeated");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected).hasMessage(String.format(UserErrors.DISALLOWED_REPETITION, "-p"));
+			assertThat(repeatable.numberOfCallsToExecute).isEqualTo(0);
+			assertThat(notRepeatable.numberOfCallsToExecute).isEqualTo(0);
+
 		}
 	}
 }

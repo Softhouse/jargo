@@ -103,37 +103,40 @@ public class CharacterTrieBenchmark extends SimpleBenchmark
 	{
 		MAP
 		{
-			@Override
+
+	@Override
 			<T> Map<String, T> createMap(Map<String, T> elements)
 			{
 				return Maps.newTreeMap();
 			}
 
-			@Override
+	@Override
 			<T> Set<Entry<String, T>> entriesWithPrefix(Map<String, T> elements, String prefix)
 			{
 				return ((SortedMap<String, T>) elements).tailMap(prefix).entrySet();
 			}
-		},
 
-		CHARACTER_TRIE
-		{
-			@Override
+	},
+
+	CHARACTER_TRIE{
+
+	@Override
 			<T> Map<String, T> createMap(Map<String, T> elements)
 			{
 				return CharacterTrie.newTrie(elements);
 			}
 
-			@Override
+	@Override
 			<T> Set<Entry<String, T>> entriesWithPrefix(Map<String, T> elements, String prefix)
 			{
 				return ((CharacterTrie<T>) elements).getEntriesWithPrefix(prefix);
 			}
-		};
 
-		abstract <T> Map<String, T> createMap(Map<String, T> elements);
+	};
 
-		abstract <T> Set<Entry<String, T>> entriesWithPrefix(Map<String, T> elements, String prefix);
+	abstract <T> Map<String, T> createMap(Map<String, T> elements);
+
+	abstract <T> Set<Entry<String, T>> entriesWithPrefix(Map<String, T> elements, String prefix);
 
 	}
 

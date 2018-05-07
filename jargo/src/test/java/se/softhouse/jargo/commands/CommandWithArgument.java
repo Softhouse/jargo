@@ -12,35 +12,40 @@
  */
 package se.softhouse.jargo.commands;
 
-import java.util.List;
-
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
 
-public final class ProfilingExecuteCommand extends Command
+public class CommandWithArgument<T> extends Command
 {
-	public int numberOfCallsToExecute;
+	private final Argument<T> arg;
 
-	public ProfilingExecuteCommand(Argument<?> ... args)
-	{
-		super(args);
-	}
+	public T parsedObject;
 
-	public ProfilingExecuteCommand(List<Argument<?>> args)
-	{
-		super(args);
-	}
+	private final String name;
 
-	@Override
-	public String commandName()
+	public CommandWithArgument(String name, Argument<T> arg)
 	{
-		return "profile";
+		super(arg);
+		this.name = name;
+		this.arg = arg;
 	}
 
 	@Override
-	protected void execute(ParsedArguments parsedArguments)
+	protected String commandName()
 	{
-		numberOfCallsToExecute++;
+		return name;
+	}
+
+	@Override
+	public String description()
+	{
+		return "A command that parses a single argument";
+	}
+
+	@Override
+	protected void execute(ParsedArguments args)
+	{
+		parsedObject = args.get(arg);
 	}
 }

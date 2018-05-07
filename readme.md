@@ -45,14 +45,14 @@ For more examples see the [Javadoc](http://jontejj.github.io/jargo/javadoc/jargo
      <dependency>
        <groupId>se.softhouse</groupId>
        <artifactId>jargo</artifactId>
-       <version>0.4.4</version>
+       <version>0.4.9</version>
      </dependency>
   
 #### Common-test (optional) [Javadoc](http://jontejj.github.io/jargo/javadoc/common-test/)
      <dependency>
       <groupId>se.softhouse</groupId>
       <artifactId>common-test</artifactId>
-      <version>0.4.4</version>
+      <version>0.4.9</version>
   </dependency>
   
 # JDK compatiblity
