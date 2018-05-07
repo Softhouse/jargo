@@ -131,7 +131,11 @@ final class ArgumentIterator implements Iterator<String>
 	{
 		for(CommandInvocation invocation : commandInvocations)
 		{
-			invocation.execute(rootArgs);
+			invocation.args.setRootArgs(rootArgs);
+		}
+		for(CommandInvocation invocation : commandInvocations)
+		{
+			invocation.execute();
 		}
 	}
 

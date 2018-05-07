@@ -14,15 +14,29 @@
  */
 package se.softhouse.jargo.commands;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import se.softhouse.jargo.Argument;
+import se.softhouse.jargo.Arguments;
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
 import se.softhouse.jargo.commands.Commit.Repository;
 
 public class Git extends Command
 {
+	static final Argument<String> MESSAGE = Arguments.stringArgument("--message", "-m").build();
+
 	public Git(Repository repo)
 	{
-		super(subCommands(new Commit(repo), new Log(repo)));
+		super(argumentsAndCommands(repo));
+	}
+
+	private static List<Argument<?>> argumentsAndCommands(Repository repo)
+	{
+		List<Argument<?>> args = new ArrayList<>();
+		args.addAll(subCommands(new Commit(repo), new Log(repo), new Merge(repo)));
+		return args;
 	}
 
 	@Override

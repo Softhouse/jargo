@@ -128,24 +128,25 @@ public class CommandTest
 	/**
 	 * An alternative to {@link Command} that is based on interfaces instead
 	 */
-	public enum Service implements Runnable,Describable
+	public enum Service implements Runnable, Describable
 	{
 		START
 		{
 
-	@Override
+			@Override
 			public void run()
 			{
 				didStart = true;
 			}
 
-	@Override
-	public String description()
-	{
-		return "Starts the service";
-	}
+			@Override
+			public String description()
+			{
+				return "Starts the service";
+			}
 
-	};}
+		};
+	}
 
 	@Test
 	public void testMapOfCommands() throws Exception
@@ -796,6 +797,16 @@ public class CommandTest
 			assertThat(expected).hasMessage(String.format(UserErrors.SUGGESTION, "lo", "log"));
 
 		}
+	}
+
+	@Test
+	public void testThatDefaultValuesForMainArgsCanBeAccessedFromSubSubcommand() throws Exception
+	{
+		Repository repo = new Repository();
+		CommandLineParser git = CommandLineParser.withCommands(new Git(repo)).andArguments(Git.MESSAGE);
+		git.parse("git", "merge", "--author=merge-person@company.org");
+		assertThat(repo.commits).hasSize(1);
+		assertThat(repo.commits.get(0).message).isEqualTo("");
 	}
 
 	@Test

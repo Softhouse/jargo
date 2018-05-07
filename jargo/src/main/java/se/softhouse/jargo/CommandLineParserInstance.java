@@ -569,10 +569,15 @@ final class CommandLineParserInstance
 			this.argumentSettingsForInvokedCommand = argumentSettingsForInvokedCommand;
 		}
 
-		void execute(ParsedArguments rootArgs)
+		void execute()
 		{
-			args.setRootArgs(rootArgs);
 			command.execute(args);
+		}
+
+		@Override
+		public String toString()
+		{
+			return command.commandName() + "" + args;
 		}
 	}
 
