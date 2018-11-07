@@ -1,9 +1,6 @@
-Recommended plugins:
-Workspace mechanic (http://code.google.com/a/eclipselabs.org/p/workspacemechanic/)
-From Marketplace:
-AnyEdit Tools
-EclEmma
-Maven Integration for eclipse (m2eclipse)
+Recommended plugins from Marketplace:
+Workspace mechanic
+Spotbugs
 
 NOTE: As the workspace mechanic tasks modifies workspace global settings it's 
 recommended to develop in a fresh workspace.

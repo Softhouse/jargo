@@ -12,11 +12,10 @@
  */
 package se.softhouse.jargo;
 
+import static java.lang.System.lineSeparator;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static org.fest.assertions.Fail.failure;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
-import static se.softhouse.common.strings.StringsUtil.TAB;
 import static se.softhouse.common.testlib.Thrower.asUnchecked;
 import static se.softhouse.jargo.Arguments.integerArgument;
 import static se.softhouse.jargo.Arguments.stringArgument;
@@ -34,8 +33,10 @@ import java.util.Locale;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import se.softhouse.common.classes.Classes;
 import se.softhouse.common.strings.Describable;
+import se.softhouse.common.testlib.Explanation;
 import se.softhouse.common.testlib.Serializer;
 import se.softhouse.common.testlib.SimulatedException;
 import se.softhouse.jargo.ArgumentExceptions.UnexpectedArgumentException;
@@ -109,14 +110,14 @@ public class UsageTest
 	public void testUsageForNoArguments()
 	{
 		Usage usage = CommandLineParser.withArguments().programName("NoArguments").usage();
-		assertThat(usage).isEqualTo("Usage: NoArguments" + NEWLINE);
+		assertThat(usage).isEqualTo("Usage: NoArguments" + lineSeparator());
 	}
 
 	@Test
 	public void testUsageForNoVisibleArguments()
 	{
 		Usage usage = CommandLineParser.withArguments(integerArgument().hideFromUsage().build()).programName("NoVisibleArguments").usage();
-		assertThat(usage).isEqualTo("Usage: NoVisibleArguments" + NEWLINE);
+		assertThat(usage).isEqualTo("Usage: NoVisibleArguments" + lineSeparator());
 	}
 
 	@Test
@@ -147,7 +148,7 @@ public class UsageTest
 	@Test
 	public void testUsageTextForRepeatedArgumentWithDefaultValueSet()
 	{
-		Usage usage = integerArgument().defaultValue(1).repeated().usage();
+		Usage usage = integerArgument("-n").defaultValue(1).repeated().usage();
 		assertThat(usage).contains(UsageTexts.DEFAULT_VALUE_START + "1").contains(UsageTexts.ALLOWS_REPETITIONS);
 	}
 
@@ -163,7 +164,7 @@ public class UsageTest
 		}
 		catch(ArgumentException expected)
 		{
-			assertThat(expected).hasMessage(String.format(UserErrors.SUGGESTION, "--namr", "--name" + NEWLINE + TAB + "--number"));
+			assertThat(expected).hasMessage(String.format(UserErrors.SUGGESTION, "--namr", "--name "));
 		}
 	}
 
@@ -240,7 +241,8 @@ public class UsageTest
 	{
 		Usage usage = CommandLineParser.withArguments().programName("ProgramName").programDescription("Program description of ProgramName").usage();
 
-		assertThat(usage).isEqualTo("Usage: ProgramName" + NEWLINE + NEWLINE + "Program description of ProgramName" + NEWLINE);
+		assertThat(usage)
+				.isEqualTo("Usage: ProgramName" + lineSeparator() + lineSeparator() + "Program description of ProgramName" + lineSeparator());
 	}
 
 	@Test
@@ -257,6 +259,7 @@ public class UsageTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatUsageInformationIsLazilyInitialized() throws ArgumentException
 	{
 		Argument<String> argument = withParser(new FailingMetaDescription()).names("-n").build();
@@ -334,7 +337,7 @@ public class UsageTest
 	{
 		String extremelyLongArgumentName = longTextWithoutNewlines.replace(" ", "-");
 		Usage usage = integerArgument(extremelyLongArgumentName).usage();
-		assertThat(usage).endsWith("-est-laborum. <integer>" + NEWLINE);
+		assertThat(usage).endsWith("-est-laborum. <integer>" + lineSeparator());
 	}
 
 	private static final String longTextWithoutNewlines = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, "

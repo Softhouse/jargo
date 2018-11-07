@@ -14,12 +14,15 @@ package se.softhouse.jargo.stringparsers.custom;
 
 import java.util.Locale;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.testlib.Explanation;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.StringParser;
 
 public class NullReturningParser implements StringParser<Object>
 {
 
+	@SuppressFBWarnings(value = "NP_NONNULL_RETURN_VIOLATION", justification = Explanation.TESTING_INVALID_CODE)
 	@Override
 	public Object parse(String argument, Locale locale) throws ArgumentException
 	{

@@ -12,6 +12,8 @@
  */
 package se.softhouse.common.classes;
 
+import static org.fest.assertions.Assertions.assertThat;
+
 public final class NoMainAvailable
 {
 	private NoMainAvailable()
@@ -38,8 +40,10 @@ public final class NoMainAvailable
 				}
 				try
 				{
-					Classes.mainClassName();
-					System.err.print("Requesting name of mainClass after main thread has died should trigger an IllegalStateException");
+					String mainClassName = Classes.mainClassName();
+					assertThat(mainClassName)
+							.describedAs("Requesting name of mainClass after main thread has died should trigger an IllegalStateException") //
+							.isNull();
 				}
 				catch(IllegalStateException expected)
 				{

@@ -38,6 +38,14 @@ catch(ArgumentException exception)
 	System.exit(1);
 }
 ```
+## Tab-completions
+No program is complete without tab-completions! So after building your project's jar (<path-to-app>.jar), you (and your users) need to specify:
+```bash
+alias my-app="java -jar <path-to-app>.jar"
+complete -o default -o bashdefault -o nospace -C my-app "my-app"
+```
+in their ~/.bash_profile file to enjoy the automatic tab-completions Jargo provides.
+
 For more examples see the [Javadoc](http://jontejj.github.io/jargo/javadoc/jargo/)
 
 # Dependency
@@ -45,14 +53,14 @@ For more examples see the [Javadoc](http://jontejj.github.io/jargo/javadoc/jargo
      <dependency>
        <groupId>se.softhouse</groupId>
        <artifactId>jargo</artifactId>
-       <version>0.4.4</version>
+       <version>0.4.13</version>
      </dependency>
   
 #### Common-test (optional) [Javadoc](http://jontejj.github.io/jargo/javadoc/common-test/)
      <dependency>
       <groupId>se.softhouse</groupId>
       <artifactId>common-test</artifactId>
-      <version>0.4.4</version>
+      <version>0.4.13</version>
   </dependency>
   
 # JDK compatiblity
@@ -99,3 +107,8 @@ From version 0.4.2 and onwards this library requires jdk 8 and Guava was removed
 
 5. Reflection makes it hard to analyze references to classes/methods and it
     often requires a granted suppressAccessChecks from the SecurityManager, this may not be wanted. No reflection is used in jargo.
+
+# For contributors
+
+## Possible candidates for refactoring
+[![](https://codescene.io/projects/3636/status.svg) Check code-smells at *codescene.io*.](https://codescene.io/projects/3636/jobs/latest-successful/results)

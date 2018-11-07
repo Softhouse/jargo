@@ -12,25 +12,8 @@
  */
 package se.softhouse.jargo;
 
-import org.junit.Test;
-import se.softhouse.common.numbers.NumberType;
-import se.softhouse.common.testlib.EnumTester;
-import se.softhouse.jargo.Argument.ParameterArity;
-import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
-import se.softhouse.jargo.StringParsers.StringStringParser;
-import se.softhouse.jargo.Usage.Row;
-import se.softhouse.jargo.commands.Build;
-import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
-import se.softhouse.jargo.internal.Texts.UsageTexts;
-import se.softhouse.jargo.internal.Texts.UserErrors;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Locale;
-
+import static java.lang.System.lineSeparator;
 import static org.fest.assertions.Assertions.assertThat;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.testlib.UtilityClassTester.testUtilityClassDesign;
 import static se.softhouse.common.testlib.UtilityClassTester.testUtilityClassDesignForAllClassesAround;
 import static se.softhouse.jargo.Arguments.integerArgument;
@@ -38,6 +21,27 @@ import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.ProgramInformation.withProgramName;
 import static se.softhouse.jargo.StringParsers.optionParser;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.function.Function;
+
+import org.junit.Test;
+
+import se.softhouse.common.guavaextensions.Predicates2;
+import se.softhouse.common.numbers.NumberType;
+import se.softhouse.common.testlib.EnumTester;
+import se.softhouse.jargo.Argument.ParameterArity;
+import se.softhouse.jargo.StringParsers.StringParserBridge;
+import se.softhouse.jargo.StringParsers.StringStringParser;
+import se.softhouse.jargo.StringParsers.TransformingParser;
+import se.softhouse.jargo.Usage.Row;
+import se.softhouse.jargo.commands.Build;
+import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
+import se.softhouse.jargo.internal.Texts.UsageTexts;
+import se.softhouse.jargo.internal.Texts.UserErrors;
 
 /**
  * Tests implementation details that has no meaning in the public API but can serve other purposes
@@ -70,7 +74,8 @@ public class PackagePrivateTest
 	@Test
 	public void testProgramInformationToString()
 	{
-		assertThat(withProgramName("name").programDescription("description").toString()).isEqualTo("name:" + NEWLINE + "description" + NEWLINE);
+		assertThat(withProgramName("name").programDescription("description").toString())
+				.isEqualTo("name:" + lineSeparator() + "description" + lineSeparator());
 	}
 
 	@Test
@@ -91,8 +96,7 @@ public class PackagePrivateTest
 	@Test
 	public void testArgumentIteratorToString()
 	{
-		assertThat(ArgumentIterator.forArguments(Arrays.asList("foobar"), Collections.<String, Argument<?>>emptyMap()).toString())
-				.isEqualTo("[foobar]");
+		assertThat(ArgumentIterator.forArguments(Arrays.asList("foobar")).toString()).isEqualTo("Parsed: [], Current: null, Remaining: [foobar]");
 	}
 
 	@Test
@@ -112,7 +116,7 @@ public class PackagePrivateTest
 	public void testUsageToString()
 	{
 		assertThat(new Usage(Collections.<Argument<?>>emptySet(), Locale.getDefault(), withProgramName("Program"), false).toString())
-				.isEqualTo("Usage: Program" + NEWLINE);
+				.isEqualTo("Usage: Program" + lineSeparator());
 	}
 
 	@Test
@@ -120,6 +124,16 @@ public class PackagePrivateTest
 	{
 		assertThat(optionParser(true).defaultValue()).isTrue();
 		assertThat(optionParser(false).defaultValue()).isFalse();
+	}
+
+	@Test
+	public void testOtherwiseUnusedMethodsForTransformerParser() throws Exception
+	{
+		Argument<String> arg = stringArgument("-s").build();
+		StringParserBridge<String> parser = new StringParserBridge<String>(StringParsers.stringParser());
+		TransformingParser<String, String> transformingParser = new TransformingParser<>(parser, Function.identity(), Predicates2.alwaysTrue());
+		assertThat(transformingParser.defaultValue()).isEqualTo("");
+		assertThat(transformingParser.metaDescription(arg)).isEqualTo("<string>");
 	}
 
 	@Test

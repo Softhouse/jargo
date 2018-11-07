@@ -15,6 +15,7 @@ package se.softhouse.jargo.stringparsers;
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
+import static se.softhouse.jargo.Arguments.enumArgument;
 import static se.softhouse.jargo.Arguments.helpArgument;
 import static se.softhouse.jargo.Arguments.integerArgument;
 import static se.softhouse.jargo.Arguments.stringArgument;
@@ -22,17 +23,26 @@ import static se.softhouse.jargo.utils.Assertions2.assertThat;
 import static se.softhouse.jargo.utils.ExpectedTexts.expected;
 
 import java.util.Arrays;
+import java.util.SortedSet;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.testlib.Explanation;
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
 import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.FakeCompleter;
+import se.softhouse.jargo.ParsedArguments;
 import se.softhouse.jargo.commands.Build;
+import se.softhouse.jargo.commands.CommandWithArgument;
 import se.softhouse.jargo.commands.CommandWithOneIndexedArgument;
+import se.softhouse.jargo.commands.Commit.Repository;
+import se.softhouse.jargo.commands.Git;
 import se.softhouse.jargo.internal.Texts.UsageTexts;
 import se.softhouse.jargo.internal.Texts.UserErrors;
+import se.softhouse.jargo.stringparsers.EnumArgumentTest.Action;
 
 /**
  * Tests for {@link Arguments#helpArgument(String, String...)}
@@ -187,6 +197,7 @@ public class HelpArgumentTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatNameCollisionsForHelpArgumentAndOtherArgumentsAreDetected()
 	{
 		try
@@ -198,5 +209,47 @@ public class HelpArgumentTest
 		{
 			assertThat(expected.getMessage()).isEqualTo("-h is handled by several arguments");
 		}
+	}
+
+	@Test
+	public void testThatHelpArgumentsCanBeCompleted() throws Exception
+	{
+		CommandLineParser parser = CommandLineParser.withArguments(HELP, enumArgument(Action.class, "-a").variableArity().build());
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "-h", "-");
+
+		assertThat(suggestions).containsOnly("-a ");
+	}
+
+	@Test
+	public void testThatHelpForCommandsCanBeCompleted() throws Exception
+	{
+		CommandWithArgument<String> command = new CommandWithArgument<>("cmd", stringArgument("--google").build());
+		CommandLineParser parser = CommandLineParser.withArguments(HELP).andCommands(command);
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "cmd", "-h", "--g");
+
+		assertThat(suggestions).containsOnly("--google ");
+	}
+
+	@Test
+	public void testThatHelpForMainArgsWorkAfterCommandHasBeenSpecified() throws Exception
+	{
+		CommandLineParser parser = CommandLineParser.withArguments(HELP, Git.MESSAGE).andCommands(new Git(new Repository()));
+		try
+		{
+			parser.parse("git", "log", "-h", "--message");
+			fail("help argument should trigger an argument exception");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected.getMessageAndUsage()).isEqualTo(expected("helpForSpecificArg"));
+		}
+	}
+
+	@Test
+	public void testThatEndOfOptionsOverridesHelp() throws Exception
+	{
+		CommandLineParser parser = CommandLineParser.withArguments(HELP, STRING);
+		ParsedArguments parsedArguments = parser.parse("--", "-h");
+		assertThat(parsedArguments.get(STRING)).isEqualTo("-h");
 	}
 }

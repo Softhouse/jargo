@@ -12,8 +12,8 @@
  */
 package se.softhouse.jargo;
 
+import static java.lang.System.lineSeparator;
 import static java.util.Objects.requireNonNull;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 
 import java.io.Serializable;
 
@@ -84,7 +84,7 @@ public abstract class ArgumentException extends RuntimeException
 	{
 		// TODO(jontejj): jack into the uncaughtExceptionHandler and remove stacktraces? Potentially
 		// very annoying feature...
-		String message = getMessage(usedArgumentName) + usageReference() + NEWLINE + NEWLINE;
+		String message = getMessage(usedArgumentName) + usageReference() + lineSeparator() + lineSeparator();
 		return getUsage().withErrorMessage(message);
 	}
 
@@ -157,7 +157,7 @@ public abstract class ArgumentException extends RuntimeException
 
 	private String usageReference()
 	{
-		return usageReferenceName;
+		return usageReferenceName != null ? usageReferenceName : "";
 	}
 
 	/**

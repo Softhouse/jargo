@@ -19,15 +19,20 @@ import static se.softhouse.jargo.Arguments.enumArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
 import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
+import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.FakeCompleter;
 import se.softhouse.jargo.StringParsers;
 import se.softhouse.jargo.Usage;
 import se.softhouse.jargo.internal.Texts.UserErrors;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests for {@link Arguments#enumArgument(Class, String...)} and
@@ -120,6 +125,31 @@ public class EnumArgumentTest
 	}
 
 	@Test
+	public void testThatEnumValuesAreCompletedCorrectly() throws Exception
+	{
+		Argument<Action> action = enumArgument(Action.class, "--action").build();
+		CommandLineParser parser = CommandLineParser.withArguments(action);
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "--action", "");
+		assertThat(suggestions).containsOnly("start", "stop", "restart");
+
+		Argument<TimeUnit> time = enumArgument(TimeUnit.class, "--time").build();
+		parser = CommandLineParser.withArguments(action, time);
+		suggestions = FakeCompleter.complete(parser, "--time", "");
+		// --action should not be included as the next argument should be a --time enum
+		assertThat(suggestions).containsOnly("NANOSECONDS", "MICROSECONDS", "MILLISECONDS", "SECONDS", "MINUTES", "HOURS", "DAYS");
+	}
+
+	@Test
+	public void testThatEnumValuesAreCompletedWithLowerCaseIfNeeded() throws Exception
+	{
+		Argument<TimeUnit> time = enumArgument(TimeUnit.class, "--time").build();
+		CommandLineParser parser = CommandLineParser.withArguments(time);
+
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "--time", "sec");
+		assertThat(suggestions).containsOnly("seconds");
+	}
+
+	@Test
 	public void testThatValidEnumOptionsAreNotConstructedIfNotNeeded()
 	{
 		try
@@ -145,10 +175,9 @@ public class EnumArgumentTest
 	{
 		ONE;
 
-		@Override
-		public String toString()
-		{
-			throw new IllegalStateException("Nefarious behavior not avoided");
-		}
+	@Override
+	public String toString()
+	{
+		throw new IllegalStateException("Nefarious behavior not avoided");
 	}
-}
+}}

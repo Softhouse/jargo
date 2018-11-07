@@ -1,0 +1,7 @@
+Help requested with -h. See usage for --message for proper values.
+
+Usage: helpForSpecificArg [Arguments]
+
+Arguments:
+--message, -m <string>    <string>: any string
+                          Default: 

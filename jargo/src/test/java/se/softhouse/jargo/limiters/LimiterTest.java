@@ -12,19 +12,6 @@
  */
 package se.softhouse.jargo.limiters;
 
-import com.google.common.collect.Range;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.junit.Test;
-import se.softhouse.common.testlib.Explanation;
-import se.softhouse.jargo.Argument;
-import se.softhouse.jargo.ArgumentBuilder;
-import se.softhouse.jargo.ArgumentException;
-import se.softhouse.jargo.Usage;
-import se.softhouse.jargo.stringparsers.custom.Port;
-import se.softhouse.jargo.stringparsers.custom.PortParser;
-
-import java.util.function.Predicate;
-
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static se.softhouse.jargo.Arguments.integerArgument;
@@ -33,6 +20,27 @@ import static se.softhouse.jargo.Arguments.withParser;
 import static se.softhouse.jargo.limiters.FooLimiter.foos;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 import static se.softhouse.jargo.utils.ExpectedTexts.expected;
+
+import java.util.Arrays;
+import java.util.SortedSet;
+import java.util.function.Predicate;
+
+import org.junit.Test;
+
+import com.google.common.collect.Range;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.strings.Describables;
+import se.softhouse.common.strings.StringsUtil;
+import se.softhouse.common.testlib.Explanation;
+import se.softhouse.jargo.Argument;
+import se.softhouse.jargo.ArgumentBuilder;
+import se.softhouse.jargo.ArgumentException;
+import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.FakeCompleter;
+import se.softhouse.jargo.Usage;
+import se.softhouse.jargo.stringparsers.custom.Port;
+import se.softhouse.jargo.stringparsers.custom.PortParser;
 
 /**
  * Test for {@link ArgumentBuilder#limitTo(Predicate)}
@@ -72,6 +80,23 @@ public class LimiterTest
 	}
 
 	@Test
+	public void testThatValidValuesForSeveralLimitersCanBeSpecified()
+	{
+		try
+		{
+			integerArgument("-n") //
+					.limitTo(java(Range.closed(1, 2)), "between 1 and 2") //
+					.limitTo(java(Range.closed(0, 4)), Describables.withString("between 0 and 4")) //
+					.parse("-n", "3");
+			fail("3 should not be allowed, limiter override lost previously set limiter");
+		}
+		catch(ArgumentException expected)
+		{
+			assertThat(expected).hasMessage("'3' is not AND(between 1 and 2, between 0 and 4)");
+		}
+	}
+
+	@Test
 	public void testRepeatedWithLimiter()
 	{
 		try
@@ -99,6 +124,22 @@ public class LimiterTest
 			Usage usage = expected.getMessageAndUsage();
 			assertThat(usage).isEqualTo(expected("arityWithLimitedValues"));
 		}
+	}
+
+	// Because it would require parsing of all suggestions which could be prohibitively expensive
+	@Test
+	public void testThatLimiterDoesNotAffectCompleter()
+	{
+		Argument<String> onlyFoos = stringArgument("-i", "--index") //
+				.limitTo(foos()) //
+				.completer((str) -> StringsUtil.prefixes(str, Arrays.asList("foo", "bar"))) //
+				.build();
+		CommandLineParser parser = CommandLineParser.withArguments(onlyFoos);
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "-i", "fo");
+		assertThat(suggestions).containsOnly("foo");
+
+		suggestions = FakeCompleter.complete(parser, "-i", "ba");
+		assertThat(suggestions).containsOnly("bar");
 	}
 
 	@Test(expected = ArgumentException.class)

@@ -10,7 +10,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package se.softhouse.jargo.exceptions;
+package se.softhouse.jargo;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
@@ -24,18 +24,14 @@ import javax.annotation.Nullable;
 
 import org.junit.Test;
 
-import se.softhouse.jargo.Argument;
-import se.softhouse.jargo.ArgumentBuilder.DefaultArgumentBuilder;
-import se.softhouse.jargo.ArgumentException;
-import se.softhouse.jargo.CommandLineParser;
-import se.softhouse.jargo.ParsedArguments;
-import se.softhouse.jargo.commands.ProfilingExecuteCommand;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+
+import se.softhouse.jargo.ArgumentBuilder.DefaultArgumentBuilder;
+import se.softhouse.jargo.commands.ProfilingExecuteCommand;
 
 /**
  * Tests for {@link Nonnull} and {@link Nullable} arguments
@@ -48,6 +44,8 @@ public class NullPointerTest
 		String packageName = Argument.class.getPackage().getName();
 		ImmutableSet<ClassInfo> classes = ClassPath.from(getClass().getClassLoader()).getTopLevelClasses(packageName);
 		NullPointerTester npeTester = new NullPointerTester();
+		npeTester.setDefault(CommandLineParser.class, CommandLineParser.withArguments());
+		npeTester.setDefault(ParsedArguments.class, new ParsedArguments(CommandLineParser.withArguments().parser()));
 		for(ClassInfo klazz : classes)
 		{
 			npeTester.testStaticMethods(klazz.load(), Visibility.PACKAGE);

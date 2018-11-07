@@ -16,10 +16,14 @@ import static org.fest.assertions.Assertions.assertThat;
 import static se.softhouse.jargo.Arguments.booleanArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
+import java.util.SortedSet;
+
 import org.junit.Test;
 
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
+import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.FakeCompleter;
 import se.softhouse.jargo.StringParsers;
 import se.softhouse.jargo.Usage;
 
@@ -54,5 +58,22 @@ public class BooleanArgumentTest
 	{
 		boolean result = booleanArgument("-b").parse();
 		assertThat(result).isFalse();
+	}
+
+	@Test
+	public void testThatBooleansAreCompletedCorrectly() throws Exception
+	{
+		CommandLineParser parser = CommandLineParser.withArguments(booleanArgument().build());
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "");
+		assertThat(suggestions).containsOnly("true", "false");
+
+		suggestions = FakeCompleter.complete(parser, "f");
+		assertThat(suggestions).containsOnly("false");
+
+		suggestions = FakeCompleter.complete(parser, "t");
+		assertThat(suggestions).containsOnly("true");
+
+		suggestions = FakeCompleter.complete(parser, "junk");
+		assertThat(suggestions).isEmpty();
 	}
 }

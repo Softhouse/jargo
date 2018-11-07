@@ -32,4 +32,6 @@ public final class Explanation
 	 * make the test fail for the wrong reasons.
 	 */
 	public static final String FAIL_FAST = "fail-fast during configuration phase";
+
+	public static final String TESTING_INVALID_CODE = "Invalid code";
 }

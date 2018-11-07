@@ -12,8 +12,8 @@
  */
 package se.softhouse.jargo.stringparsers;
 
+import static java.lang.System.lineSeparator;
 import static org.fest.assertions.Fail.fail;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.testlib.Locales.TURKISH;
 import static se.softhouse.jargo.Arguments.bigDecimalArgument;
 import static se.softhouse.jargo.Arguments.bigIntegerArgument;
@@ -56,10 +56,10 @@ public class NumberArgumentTest
 	@Test
 	public void testUsage()
 	{
-		String validIntegers = "<integer>: -2,147,483,648 to 2,147,483,647" + NEWLINE;
+		String validIntegers = "<integer>: -2,147,483,648 to 2,147,483,647" + lineSeparator();
 		Usage usage = integerArgument().usage();
 		assertThat(usage).contains(validIntegers);
-		assertThat(usage).contains("Default: 0" + NEWLINE);
+		assertThat(usage).contains("Default: 0" + lineSeparator());
 	}
 
 	@Test
@@ -95,7 +95,7 @@ public class NumberArgumentTest
 	{
 		Argument<Short> localeDependentArgument = shortArgument().defaultValue(Short.MAX_VALUE).build();
 		Usage usage = CommandLineParser.withArguments(localeDependentArgument).locale(TURKISH).usage();
-		assertThat(usage).contains("Default: 32.767" + NEWLINE);
+		assertThat(usage).contains("Default: 32.767" + lineSeparator());
 	}
 
 	@Test
@@ -103,7 +103,7 @@ public class NumberArgumentTest
 	{
 		Argument<Integer> localeDependentArgument = integerArgument().defaultValue(Integer.MAX_VALUE).build();
 		Usage usage = CommandLineParser.withArguments(localeDependentArgument).locale(TURKISH).usage();
-		assertThat(usage).contains("Default: 2.147.483.647" + NEWLINE);
+		assertThat(usage).contains("Default: 2.147.483.647" + lineSeparator());
 	}
 
 	@Test
@@ -111,7 +111,7 @@ public class NumberArgumentTest
 	{
 		Argument<Long> localeDependentArgument = longArgument().defaultValue(Long.MAX_VALUE).build();
 		Usage usage = CommandLineParser.withArguments(localeDependentArgument).locale(TURKISH).usage();
-		assertThat(usage).contains("Default: 9.223.372.036.854.775.807" + NEWLINE);
+		assertThat(usage).contains("Default: 9.223.372.036.854.775.807" + lineSeparator());
 	}
 
 	@Test
@@ -119,7 +119,7 @@ public class NumberArgumentTest
 	{
 		Argument<BigDecimal> localeDependentArgument = bigDecimalArgument().defaultValue(BigDecimal.valueOf(Long.MAX_VALUE)).build();
 		Usage usage = CommandLineParser.withArguments(localeDependentArgument).locale(TURKISH).usage();
-		assertThat(usage).contains("Default: 9.223.372.036.854.775.807" + NEWLINE);
+		assertThat(usage).contains("Default: 9.223.372.036.854.775.807" + lineSeparator());
 	}
 
 	@Test
@@ -127,6 +127,6 @@ public class NumberArgumentTest
 	{
 		Argument<BigInteger> localeDependentArgument = bigIntegerArgument().defaultValue(BigInteger.valueOf(Long.MAX_VALUE)).build();
 		Usage usage = CommandLineParser.withArguments(localeDependentArgument).locale(TURKISH).usage();
-		assertThat(usage).contains("Default: 9.223.372.036.854.775.807" + NEWLINE);
+		assertThat(usage).contains("Default: 9.223.372.036.854.775.807" + lineSeparator());
 	}
 }

@@ -24,6 +24,9 @@ import org.junit.Test;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.testlib.Explanation;
+
 /**
  * Tests for {@link Suppliers2}
  */
@@ -73,6 +76,7 @@ public class Suppliers2Test
 	}
 
 	@Test(expected = IllegalArgumentException.class)
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatNegativeRepeatsIsIllegal()
 	{
 		Suppliers2.ofRepeatedElements(FOO_SUPPLIER, -1);

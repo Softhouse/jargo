@@ -12,7 +12,7 @@
  */
 package se.softhouse.common.strings;
 
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
+import static java.lang.System.lineSeparator;
 
 import java.text.BreakIterator;
 import java.util.Locale;
@@ -20,7 +20,7 @@ import java.util.Locale;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Utilities for working with {@link StringsUtil#NEWLINE new line} in texts.
+ * Utilities for working with {@link System#lineSeparator() new line} in texts.
  */
 @Immutable
 public final class Lines
@@ -34,7 +34,7 @@ public final class Lines
 	 * href="http://docs.oracle.com/javase/tutorial/i18n/text/line.html">appropriate</a> (as defined
 	 * by {@code locale}).
 	 * 
-	 * @param value the value to separate with {@link StringsUtil#NEWLINE new lines}
+	 * @param value the value to separate with {@link System#lineSeparator() new lines}
 	 * @param maxLineLength how long each line are allowed to be
 	 */
 	public static StringBuilder wrap(CharSequence value, int maxLineLength, Locale locale)
@@ -47,7 +47,7 @@ public final class Lines
 	 * href="http://docs.oracle.com/javase/tutorial/i18n/text/line.html">appropriate</a> (as defined
 	 * by {@code locale}).
 	 * 
-	 * @param value the value to separate with {@link StringsUtil#NEWLINE new lines}
+	 * @param value the value to separate with {@link System#lineSeparator() new lines}
 	 * @param startingIndex the index where each line starts, useful for a fixed-size table for
 	 *            instance
 	 * @param maxLineLength how long each line are allowed to be
@@ -69,7 +69,7 @@ public final class Lines
 			lineLength = lineLength + word.length();
 			if(lineLength >= maxLineLength)
 			{
-				result.append(NEWLINE);
+				result.append(lineSeparator());
 				lineLength = startingIndex;
 			}
 			result.append(word);

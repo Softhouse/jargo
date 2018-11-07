@@ -8,12 +8,13 @@
 	<groupId>se.softhouse</groupId>
 	<artifactId>jargo-parent</artifactId>
 	<description>Jargo maven parent</description>
-	<version>0.4.5-SNAPSHOT</version>
+	<version>0.4.15-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<url>https://github.com/Softhouse/jargo</url>
 	<properties>
 		<guava.version>24.1-jre</guava.version>
 		<maven.javadoc.plugin.version>3.0.0</maven.javadoc.plugin.version>
+		<jacoco.version>0.8.1</jacoco.version>
 	</properties>
 	<scm>
 		<url>https://github.com/jontejj/jargo</url>
@@ -56,9 +57,6 @@
 			<timezone>+1</timezone>
 		</developer>
 	</developers>
-	<prerequisites>
-		<maven>3.0.3</maven>
-	</prerequisites>
 	<modules>
 		<module>common-test</module>
 		<module>jargo</module>
@@ -127,44 +125,23 @@
 				<executions>
 					<execution>
 						<goals>
-							<goal>validate</goal>
+							<!-- <goal>validate</goal> -->
 							<!-- Enable this if you want to format at compile time (don't commit 
 								with this goal enabled though). It's better to configure your code editor 
-								to be compliant with code-formatter.xml instead. If that's annoying, 
-								set up a maven profile to enable "format" and make sure to run mvn compile before 
+								to be compliant with code-formatter.xml instead. If that's annoying, set 
+								up a maven profile to enable "format" and make sure to run mvn compile before 
 								commiting. -->
-							<!-- <goal>format</goal> -->
+							<goal>format</goal>
 						</goals>
 					</execution>
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.9</version>
-				<configuration>
-					<!-- The idea is to run all tests concurrently in the same JVM, reporting 
-						any errors to standard out as the tests aren't allowed to log anything else 
-						than errors -->
-					<useFile>false</useFile>
-					<!-- TODO(jontejj): enable when http://jira.codehaus.org/browse/SUREFIRE-797 
-						is solved <parallel>methods</parallel> -->
-					<threadCount>1</threadCount>
-					<!-- Fork one time to minimize memory usage while concurrently launching 
-						several child-processes -->
-					<forkCount>1</forkCount>
-					<reuseForks>true</reuseForks>
-					<!-- Workaround for bug https://github.com/jacoco/jacoco/pull/40 -->
-					<argLine>${coverageAgent}</argLine>
-				</configuration>
-			</plugin>
-			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.4.201502262128</version>
+				<version>${jacoco.version}</version>
 				<configuration>
-					<!-- Workaround for bug https://github.com/jacoco/jacoco/pull/40 -->
-					<propertyName>coverageAgent</propertyName>
+					<destFile>${user.home}/jargo/jacoco.exec</destFile>
 				</configuration>
 				<executions>
 					<execution>
@@ -249,9 +226,33 @@
 					<description>Release of ${project.version}</description>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<!-- Parent POM is using 1.2 which triggers annoying warnings in eclipse -->
+				<version>1.4</version>
+			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>2.21.0</version>
+					<configuration>
+						<!-- The idea is to run all tests concurrently in the same JVM, reporting 
+							any errors to standard out as the tests aren't allowed to log anything else 
+							than errors -->
+						<useFile>false</useFile>
+						<parallel>all</parallel>
+						<useUnlimitedThreads>true</useUnlimitedThreads>
+						<!-- <threadCount>4</threadCount> -->
+						<!-- Fork one time to minimize memory usage while concurrently launching 
+							several child-processes -->
+						<forkCount>1</forkCount>
+						<reuseForks>true</reuseForks>
+					</configuration>
+				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-site-plugin</artifactId>
@@ -326,7 +327,7 @@
 			<groupId>org.jacoco</groupId>
 			<artifactId>org.jacoco.agent</artifactId>
 			<classifier>runtime</classifier>
-			<version>0.6.2.201302030002</version>
+			<version>${jacoco.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

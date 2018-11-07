@@ -12,19 +12,23 @@
  */
 package se.softhouse.common.strings;
 
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.IntStream.of;
 import static se.softhouse.common.guavaextensions.Lists2.isEmpty;
 import static se.softhouse.common.guavaextensions.Preconditions2.check;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Utilities for working with {@link String}s
@@ -37,39 +41,16 @@ public final class StringsUtil
 	}
 
 	/**
-	 * A suitable string to represent newlines on this specific platform
-	 */
-	public static final String NEWLINE = System.getProperty("line.separator");
-
-	/**
-	 * A {@link Charset} for <a href="https://en.wikipedia.org/wiki/UTF-8">UTF8</a>
-	 */
-	public static final Charset UTF8 = Charset.forName("UTF-8");
-
-	/**
 	 * The <a href="http://en.wikipedia.org/wiki/ASCII_tab">ASCII tab</a> (\t) character
 	 */
 	public static final char TAB = '\t';
-
-	/**
-	 * @param numberOfSpaces to put in the created string
-	 * @return a string with numberOfSpaces in it
-	 * @deprecated use {@link #repeat(String, int)} instead
-	 */
-	@Nonnull
-	@CheckReturnValue
-	@Deprecated
-	public static String spaces(final int numberOfSpaces)
-	{
-		return repeat(" ", numberOfSpaces);
-	}
 
 	/**
 	 * Returns a " ^" string pointing at the position indicated by {@code indexToPointAt}
 	 */
 	public static String pointingAtIndex(int indexToPointAt)
 	{
-		return spaces(indexToPointAt) + "^";
+		return repeat(" ", indexToPointAt) + "^";
 	}
 
 	/**
@@ -158,6 +139,50 @@ public final class StringsUtil
 		return closeMatches.stream().sorted((l, r) -> l.measuredDistance - r.measuredDistance) //
 				.map((i) -> i.value) //
 				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Matches strings from {@code validOptions} that starts with {@code partOfWord}.
+	 * 
+	 * @param partOfWord a part of a word
+	 * @param validOptions the valid options
+	 * @return the matches found
+	 */
+	public static SortedSet<String> prefixes(final String partOfWord, final Collection<String> validOptions)
+	{
+		requireNonNull(partOfWord);
+		return validOptions.stream().filter(a -> a.startsWith(partOfWord)).collect(Collectors.toCollection(TreeSet::new));
+	}
+
+	/**
+	 * Like {@link #prefixes(String, Collection)} but ignoring the case of partOfWord.
+	 * This method is also easier to use if you have many valid options and need to lazily generate the options
+	 * ({@link Iterable} is easier to implement than {@link Collection}).
+	 * 
+	 * @param locale the locale to use for converting the {@code options / partOfWord} into lower case
+	 * @return the matches found, with the case from {@code partOfWord} preserved
+	 */
+	public static SortedSet<String> prefixesIgnoringCase(final String partOfWord, final Iterable<String> validOptions, Locale locale)
+	{
+		requireNonNull(partOfWord);
+		requireNonNull(locale);
+		TreeSet<String> matches = new TreeSet<>();
+		for(String option : validOptions)
+		{
+			if(option.startsWith(partOfWord))
+			{
+				matches.add(option);
+			}
+			else
+			{
+				String optionInLowerCase = option.toLowerCase(locale);
+				if(optionInLowerCase.startsWith(partOfWord.toLowerCase(locale)))
+				{
+					matches.add(partOfWord + optionInLowerCase.substring(partOfWord.length()));
+				}
+			}
+		}
+		return matches;
 	}
 
 	static final class CloseMatch
@@ -321,7 +346,9 @@ public final class StringsUtil
 		check(times >= 0, "Negative repitions is not supported. Was: ", times);
 		StringBuilder builder = new StringBuilder(part.length() * times);
 		for(int i = 0; i < times; i++)
+		{
 			builder.append(part);
+		}
 		return builder.toString();
 	}
 }

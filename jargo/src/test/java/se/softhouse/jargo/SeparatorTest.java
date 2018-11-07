@@ -14,16 +14,19 @@ package se.softhouse.jargo;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
+import static se.softhouse.jargo.Arguments.enumArgument;
 import static se.softhouse.jargo.Arguments.integerArgument;
 import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.SortedSet;
 
 import org.junit.Test;
 
 import se.softhouse.jargo.internal.Texts.UserErrors;
+import se.softhouse.jargo.stringparsers.EnumArgumentTest.Action;
 
 /**
  * Tests for {@link ArgumentBuilder#separator(String)}
@@ -126,5 +129,19 @@ public class SeparatorTest
 		{
 			assertThat(expected).hasMessage(String.format(UserErrors.SUGGESTION, "-n", "-n/"));
 		}
+	}
+
+	@Test
+	public void testThatEqualsAsSeparatorSuggestsForCurrentArg() throws Exception
+	{
+		Argument<Action> action = enumArgument(Action.class, "-a").separator("=").build();
+		CommandLineParser parser = CommandLineParser.withArguments(action);
+		SortedSet<String> suggestions = FakeCompleter.completeWithSeparator(parser, "=", "-a", "");
+		assertThat(suggestions).containsOnly("start", "stop", "restart");
+
+		Argument<String> s = stringArgument("-s").separator("=").build();
+		parser = CommandLineParser.withArguments(s);
+		suggestions = FakeCompleter.completeWithSeparator(parser, "", "-s=");
+		assertThat(suggestions).isEmpty();
 	}
 }

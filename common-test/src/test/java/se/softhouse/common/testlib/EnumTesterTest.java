@@ -22,6 +22,8 @@ import org.junit.Test;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class EnumTesterTest
 {
 	@Test
@@ -55,11 +57,12 @@ public class EnumTesterTest
 		ONE,
 		TWO;
 
-		@Override
+	@Override
 		public String toString()
 		{
 			return TWO.name();
 		}
+
 	}
 
 	@Test
@@ -78,18 +81,17 @@ public class EnumTesterTest
 		}
 	}
 
-	private enum InvalidValueOfEnum
+	private enum InvalidValueOfEnum{ONE,TWO
 	{
-		ONE,
-		TWO
-		{
-			@Override
+
+	@Override
+			@SuppressFBWarnings(value = "NP_TOSTRING_COULD_RETURN_NULL", justification = Explanation.TESTING_INVALID_CODE)
 			public String toString()
 			{
 				return null;
 			}
-		};
-	}
+
+	};}
 
 	@Test
 	public void testThatPackageProtectedValueOfIsNotCallable() throws ClassNotFoundException

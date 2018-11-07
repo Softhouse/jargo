@@ -12,22 +12,6 @@
  */
 package se.softhouse.jargo;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Range;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.junit.Test;
-import se.softhouse.common.testlib.Explanation;
-import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
-import se.softhouse.jargo.internal.Texts.UserErrors;
-import se.softhouse.jargo.limiters.LimiterTest;
-import se.softhouse.jargo.stringparsers.custom.LimitedKeyParser;
-import se.softhouse.jargo.stringparsers.custom.ObjectParser;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static java.lang.String.format;
@@ -36,14 +20,35 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static se.softhouse.common.strings.Describers.withConstantString;
 import static se.softhouse.jargo.Arguments.byteArgument;
+import static se.softhouse.jargo.Arguments.enumArgument;
 import static se.softhouse.jargo.Arguments.integerArgument;
 import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.StringParsers.byteParser;
 import static se.softhouse.jargo.StringParsers.integerParser;
 import static se.softhouse.jargo.internal.Texts.UserErrors.DISALLOWED_PROPERTY_VALUE;
 import static se.softhouse.jargo.limiters.FooLimiter.foos;
-import static se.softhouse.jargo.utils.ExpectedTexts.expected;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
+import static se.softhouse.jargo.utils.ExpectedTexts.expected;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.function.Predicate;
+
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Range;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.testlib.Explanation;
+import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
+import se.softhouse.jargo.internal.Texts.UserErrors;
+import se.softhouse.jargo.limiters.LimiterTest;
+import se.softhouse.jargo.stringparsers.EnumArgumentTest.Action;
+import se.softhouse.jargo.stringparsers.custom.LimitedKeyParser;
+import se.softhouse.jargo.stringparsers.custom.ObjectParser;
 
 /**
  * Tests for {@link ArgumentBuilder#asPropertyMap()} and
@@ -326,6 +331,15 @@ public class PropertyMapTest
 	}
 
 	@Test
+	public void testCompleteWhenSeparatorInName() throws ArgumentException
+	{
+		Argument<Map<String, Action>> argument = enumArgument(Action.class, "-N").separator("-")
+				.asKeyValuesWithKeyParser(new LimitedKeyParser("foo", "bar")).build();
+		SortedSet<String> suggestions = FakeCompleter.complete(CommandLineParser.withArguments(argument), "-N");
+		assertThat(suggestions).containsOnly("-Nfoo-", "-Nbar-");
+	}
+
+	@Test
 	public void testLimitWithForRepeatedPropertyValues()
 	{
 		try
@@ -398,5 +412,36 @@ public class PropertyMapTest
 		assertThat(System.getProperty("sys.prop.test")).isEqualTo("foo");
 		assertThat(map.get("os.name")).as("Should delegate to system properties when not specified") //
 				.isEqualTo(System.getProperty("os.name"));
+	}
+
+	@Test
+	public void testThatOnlyValidKeysAreCompleted() throws ArgumentException
+	{
+		Argument<Map<String, Integer>> limited = integerArgument("-I") //
+				.asKeyValuesWithKeyParser(new LimitedKeyParser("foo", "bar")).build();
+		CommandLineParser parser = CommandLineParser.withArguments(limited);
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "-If");
+		assertThat(suggestions).containsOnly("-Ifoo=");
+
+		suggestions = FakeCompleter.complete(parser, "-");
+		assertThat(suggestions).containsOnly("-I", "-Ifoo=", "-Ibar=");
+	}
+
+	@Test
+	public void testThatOnlyValidValuesAreCompleted() throws ArgumentException
+	{
+		Argument<Map<String, Action>> limited = enumArgument(Action.class, "-I") //
+				.asKeyValuesWithKeyParser(new LimitedKeyParser("foo", "bar")).build();
+		SortedSet<String> suggestions = FakeCompleter.completeWithSeparator(CommandLineParser.withArguments(limited), "=", "-Ifoo", "");
+		assertThat(suggestions).containsOnly("start", "stop", "restart");
+	}
+
+	@Test
+	public void testThatOnlyOneValidKeyContinuesToSuggestValuesForKey() throws ArgumentException
+	{
+		Argument<Map<String, Action>> limited = enumArgument(Action.class, "-I") //
+				.asKeyValuesWithKeyParser(new LimitedKeyParser("foo")).build();
+		SortedSet<String> suggestions = FakeCompleter.complete(CommandLineParser.withArguments(limited), "-If");
+		assertThat(suggestions).containsOnly("-Ifoo=", "-Ifoo=start", "-Ifoo=stop", "-Ifoo=restart");
 	}
 }

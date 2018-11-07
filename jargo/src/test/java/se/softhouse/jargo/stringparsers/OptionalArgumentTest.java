@@ -15,17 +15,22 @@ package se.softhouse.jargo.stringparsers;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static se.softhouse.jargo.Arguments.optionArgument;
+import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
 import java.util.Collections;
+import java.util.SortedSet;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
+import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.FakeCompleter;
 import se.softhouse.jargo.Usage;
 import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests for {@link Arguments#optionArgument(String, String...)}
@@ -64,6 +69,27 @@ public class OptionalArgumentTest
 		assertThat(usage).contains("Default: enabled");
 
 		assertThat(optionArgument("--disable-logging").defaultValue(true).parse()).isTrue();
+	}
+
+	@Test
+	public void testThatOptionalValueIsCompleted() throws Exception
+	{
+		Argument<Boolean> logging = optionArgument("--disable-logging").build();
+		CommandLineParser parser = CommandLineParser.withArguments(logging);
+
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "--disable");
+		assertThat(suggestions).containsOnly("--disable-logging ");
+	}
+
+	@Test
+	public void testThatArgsAfterOptionalValueCanBeCompleted() throws Exception
+	{
+		Argument<Boolean> logging = optionArgument("--disable-logging").build();
+		Argument<String> logDir = stringArgument("--log-dir").build();
+		CommandLineParser parser = CommandLineParser.withArguments(logging, logDir);
+
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "--disable-logging", "--log");
+		assertThat(suggestions).containsOnly("--log-dir ");
 	}
 
 	@Test

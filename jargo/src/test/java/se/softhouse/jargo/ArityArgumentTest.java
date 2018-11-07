@@ -23,14 +23,14 @@ import static se.softhouse.jargo.utils.ExpectedTexts.expected;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import se.softhouse.common.testlib.Explanation;
-import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
 import se.softhouse.jargo.internal.Texts.ProgrammaticErrors;
 import se.softhouse.jargo.internal.Texts.UserErrors;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests for {@link ArgumentBuilder#arity(int)} and {@link ArgumentBuilder#variableArity()}
@@ -72,6 +72,7 @@ public class ArityArgumentTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatArityOfOneIsForbidden()
 	{
 		try
@@ -105,8 +106,12 @@ public class ArityArgumentTest
 		Argument<List<String>> foo = stringArgument("--foo").arity(3).description("MetaDescShouldBeDisplayedThreeTimes").build();
 		Argument<List<Integer>> bar = integerArgument("--bar").arity(2).description("MetaDescShouldBeDisplayedTwoTimes").build();
 		Argument<List<Integer>> zoo = integerArgument("--zoo").variableArity().description("MetaDescShouldIndicateVariableAmount").build();
+		Argument<Integer> trans = integerArgument("--trans").variableArity().transform(l -> l.size())
+				.description("MetaDescShouldIndicateVariableAmount").build();
+		Argument<Integer> transTwo = integerArgument("--trans-two").arity(2).transform(l -> l.size()).description("MetaDescShouldBeDisplayedTwoTimes")
+				.build();
 		Argument<List<Integer>> boo = integerArgument().variableArity().description("MetaDescShouldIndicateVariableAmount").build();
-		Usage usage = CommandLineParser.withArguments(foo, bar, zoo, boo).usage();
+		Usage usage = CommandLineParser.withArguments(foo, bar, zoo, trans, transTwo, boo).usage();
 		assertThat(usage).isEqualTo(expected("metaDescriptionsForArityArgument"));
 	}
 
@@ -120,7 +125,7 @@ public class ArityArgumentTest
 	@Test
 	public void testThatNrOfRemainingArgumentsGivesTheCorrectCapacity()
 	{
-		ArgumentIterator args = ArgumentIterator.forArguments(Arrays.asList("foo"), Collections.<String, Argument<?>>emptyMap());
+		ArgumentIterator args = ArgumentIterator.forArguments(Arrays.asList("foo"));
 		assertThat(args.nrOfRemainingArguments()).isEqualTo(1);
 		args.next(); // Consume one argument
 		assertThat(args.nrOfRemainingArguments()).isEqualTo(0);
@@ -144,5 +149,12 @@ public class ArityArgumentTest
 		{
 			assertThat(expected).hasMessage(String.format(ProgrammaticErrors.SEVERAL_VARIABLE_ARITY_PARSERS, "[<integer>, <string>]"));
 		}
+	}
+
+	@Test
+	public void testThatArityCanBeTransformedToUniqueValues()
+	{
+		Set<Integer> numbers = integerArgument().variableArity().unique().parse("123", "24", "123");
+		assertThat(numbers).containsOnly(123, 24);
 	}
 }

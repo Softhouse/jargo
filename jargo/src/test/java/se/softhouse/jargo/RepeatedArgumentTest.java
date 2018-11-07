@@ -15,6 +15,7 @@ package se.softhouse.jargo;
 import static com.google.common.collect.ImmutableList.of;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
+import static se.softhouse.jargo.Arguments.enumArgument;
 import static se.softhouse.jargo.Arguments.integerArgument;
 import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.limiters.FooLimiter.foos;
@@ -22,12 +23,15 @@ import static se.softhouse.jargo.limiters.FooLimiter.foos;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 
 import se.softhouse.jargo.internal.Texts.UserErrors;
+import se.softhouse.jargo.stringparsers.EnumArgumentTest.Action;
 
 /**
  * Tests for {@link ArgumentBuilder#repeated()}
@@ -83,6 +87,25 @@ public class RepeatedArgumentTest
 	}
 
 	@Test
+	public void testThatRepeatedCanBeTransformedToUniqueValues()
+	{
+		Set<Integer> numbers = integerArgument("-n").arity(3).unique().parse("-n", "123", "24", "123");
+		assertThat(numbers).containsOnly(123, 24);
+		numbers = integerArgument("-n").variableArity().unique().parse("-n", "123", "24", "123", "1");
+		assertThat(numbers).containsOnly(123, 24, 1);
+		Set<Integer> repeatedNumbers = integerArgument("-n").repeated().unique().parse("-n", "123", "-n", "24", "-n", "123");
+		assertThat(repeatedNumbers).containsOnly(123, 24);
+		try
+		{
+			repeatedNumbers.add(4);
+			fail("Returned data types should be immutable/unmodifiable");
+		}
+		catch(UnsupportedOperationException expected)
+		{
+		}
+	}
+
+	@Test
 	public void testRepeatedValuesWithoutHandling()
 	{
 		try
@@ -122,6 +145,24 @@ public class RepeatedArgumentTest
 		catch(UnsupportedOperationException expected)
 		{
 		}
+	}
+
+	@Test
+	public void testThatRepeatedValuesAreSuggestedEvenIfAlreadyGiven()
+	{
+		Argument<List<Action>> action = enumArgument(Action.class, "-a").repeated().build();
+		CommandLineParser parser = CommandLineParser.withArguments(action);
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "-a", "start", "");
+		assertThat(suggestions).containsOnly("-a ");
+	}
+
+	@Test
+	public void testThatNonRepeatedValuesAreNotSuggestedIfAlreadyGiven()
+	{
+		Argument<Action> action = enumArgument(Action.class, "-a").build();
+		CommandLineParser parser = CommandLineParser.withArguments(action);
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "-a", "start", "");
+		assertThat(suggestions).isEmpty();
 	}
 
 	@SuppressWarnings("deprecation")

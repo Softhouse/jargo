@@ -19,32 +19,26 @@ import static se.softhouse.common.strings.StringsUtil.closestMatch;
 import static se.softhouse.common.strings.StringsUtil.closestMatches;
 import static se.softhouse.common.strings.StringsUtil.numberToPositionalString;
 import static se.softhouse.common.strings.StringsUtil.pointingAtIndex;
-import static se.softhouse.common.strings.StringsUtil.spaces;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.SortedSet;
 
 import org.junit.Test;
-
-import se.softhouse.common.testlib.Explanation;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.testlib.Explanation;
 
 /**
  * Tests for {@link StringsUtil}
  */
 public class StringsUtilTest
 {
-	@Test
-	public void testThatSpacesCreatesFiveSpaces()
-	{
-		assertThat(spaces(5)).isEqualTo("     ");
-	}
-
 	@Test
 	public void testLevenshteinDistance()
 	{
@@ -57,6 +51,22 @@ public class StringsUtilTest
 		assertThat(StringsUtil.levenshteinDistance("hippo", "elephant")).isEqualTo(7);
 		assertThat(StringsUtil.levenshteinDistance("hippo", "zzzzzzzz")).isEqualTo(8);
 		assertThat(StringsUtil.levenshteinDistance("hello", "hallo")).isEqualTo(1);
+	}
+
+	@Test
+	public void testThatAllPrefixesAreReturned() throws Exception
+	{
+		List<String> strings = asList("logging", "logger", "mologger");
+		SortedSet<String> prefixes = StringsUtil.prefixes("log", strings);
+		assertThat(prefixes).containsOnly("logging", "logger");
+	}
+
+	@Test
+	public void testThatAllPrefixesAreReturnedIgnoringCase() throws Exception
+	{
+		List<String> strings = asList("logging", "logger", "mologger");
+		SortedSet<String> prefixes = StringsUtil.prefixesIgnoringCase("Log", strings, Locale.US);
+		assertThat(prefixes).containsOnly("Logging", "Logger");
 	}
 
 	@Test
@@ -150,6 +160,7 @@ public class StringsUtilTest
 	}
 
 	@Test(expected = IllegalArgumentException.class)
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatNegativeNumberCantBePositional()
 	{
 		numberToPositionalString(-1);

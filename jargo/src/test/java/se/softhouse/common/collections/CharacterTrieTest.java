@@ -16,6 +16,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.fail;
 
+import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -160,7 +161,7 @@ public class CharacterTrieTest
 		trie.put("fooo", BAR);
 		trie.put("fooos", ZOO);
 
-		Set<String> actualEntries = valuesInSet(trie.getEntriesWithPrefix("fooo"));
+		Collection<String> actualEntries = trie.getEntriesWithPrefix("fooo").values();
 		assertThat(actualEntries).containsOnly(BAR, ZOO);
 	}
 
@@ -188,7 +189,7 @@ public class CharacterTrieTest
 		// Make sure equals of Entry isn't fooling us
 		CharacterTrie<String> copy = CharacterTrie.newTrie(trie);
 
-		assertThat(trie.getEntriesWithPrefix("")).isEqualTo(copy.entrySet());
+		assertThat(trie.getEntriesWithPrefix("")).isEqualTo(copy.getEntriesWithPrefix(""));
 	}
 
 	@Test

@@ -12,8 +12,8 @@
  */
 package se.softhouse.jargo.stringparsers;
 
+import static java.lang.System.lineSeparator;
 import static org.fest.assertions.Assertions.assertThat;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.jargo.Arguments.bigIntegerArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
@@ -52,7 +52,7 @@ public class BigIntegerArgumentTest
 			/**
 			 * @formatter.off
 			 */
-			assertThat(e).hasMessage("'1a' is not a valid big-integer (Localization: English (United States))" + NEWLINE +
+			assertThat(e).hasMessage("'1a' is not a valid big-integer (Localization: English (United States))" + lineSeparator() +
 			                         "  ^");
 			/**
 			 * @formatter.on

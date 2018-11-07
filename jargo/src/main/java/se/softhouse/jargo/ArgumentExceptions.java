@@ -12,11 +12,16 @@
  */
 package se.softhouse.jargo;
 
+import static java.lang.System.lineSeparator;
 import static java.util.Objects.requireNonNull;
+import static se.softhouse.common.strings.Describables.asSerializable;
+import static se.softhouse.common.strings.Describables.cache;
+import static se.softhouse.common.strings.StringsUtil.TAB;
 import static se.softhouse.common.strings.StringsUtil.numberToPositionalString;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -26,7 +31,6 @@ import javax.annotation.concurrent.Immutable;
 import se.softhouse.common.strings.Describable;
 import se.softhouse.common.strings.Describables;
 import se.softhouse.common.strings.Describables.SerializableDescription;
-import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
 import se.softhouse.jargo.internal.Texts.UserErrors;
 
 /**
@@ -150,21 +154,23 @@ public final class ArgumentExceptions
 		return new MissingRequiredArgumentException(missingArguments);
 	}
 
-	private static final class MissingRequiredArgumentException extends ArgumentException
+	static final class MissingRequiredArgumentException extends ArgumentException
 	{
-		private final String missingArguments;
+		private final transient Collection<Argument<?>> missingArguments;
+		private final SerializableDescription missingArgs;
 
 		private MissingRequiredArgumentException(final Collection<Argument<?>> missingArguments)
 		{
-			this.missingArguments = missingArguments.toString();
+			this.missingArguments = requireNonNull(missingArguments);
+			this.missingArgs = asSerializable(cache(() -> missingArguments.toString()));
 		}
 
 		@Override
 		protected String getMessage(String argumentNameOrcommandName)
 		{
 			if(isCausedByCommand(argumentNameOrcommandName))
-				return String.format(UserErrors.MISSING_COMMAND_ARGUMENTS, argumentNameOrcommandName, missingArguments);
-			return String.format(UserErrors.MISSING_REQUIRED_ARGUMENTS, missingArguments);
+				return String.format(UserErrors.MISSING_COMMAND_ARGUMENTS, argumentNameOrcommandName, missingArgs.description());
+			return String.format(UserErrors.MISSING_REQUIRED_ARGUMENTS, missingArgs.description());
 		}
 
 		private boolean isCausedByCommand(@Nullable String argumentNameOrcommandName)
@@ -172,10 +178,15 @@ public final class ArgumentExceptions
 			return argumentNameOrcommandName != null;
 		}
 
+		public Collection<Argument<?>> missingArguments()
+		{
+			return missingArguments;
+		}
+
 		/**
 		 * For {@link Serializable}
 		 */
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 2L;
 	}
 
 	/**
@@ -208,30 +219,37 @@ public final class ArgumentExceptions
 		return new MissingParameterException(argumentWithMissingParameter);
 	}
 
-	static final class MissingParameterException extends ArgumentException
+	static class MissingParameterException extends ArgumentException
 	{
-		private final String parameterDescription;
+		private final SerializableDescription parameter;
+		private final transient Argument<?> argumentWithMissingParameter;
 
-		private MissingParameterException(Argument<?> argumentWithMissingParameter)
+		private MissingParameterException(Argument<?> arg)
 		{
-			this.parameterDescription = argumentWithMissingParameter.metaDescriptionInRightColumn();
+			this.argumentWithMissingParameter = requireNonNull(arg);
+			this.parameter = asSerializable(cache(() -> arg.metaDescriptionInRightColumn()));
 		}
 
 		@Override
 		protected String getMessage(String argumentNameOrcommandName)
 		{
-			return String.format(UserErrors.MISSING_PARAMETER, parameterDescription, argumentNameOrcommandName);
+			return String.format(UserErrors.MISSING_PARAMETER, parameterDescription(), argumentNameOrcommandName);
 		}
 
 		String parameterDescription()
 		{
-			return parameterDescription;
+			return parameter.description();
+		}
+
+		Argument<?> argumentWithMissingParameter()
+		{
+			return argumentWithMissingParameter;
 		}
 
 		/**
 		 * For {@link Serializable}
 		 */
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 2L;
 	}
 
 	/**
@@ -248,31 +266,30 @@ public final class ArgumentExceptions
 	@Nonnull
 	static ArgumentException forMissingNthParameter(MissingParameterException cause, int missingIndex)
 	{
-		return new MissingNthParameterException(cause.parameterDescription(), missingIndex).andCause(cause);
+		return new MissingNthParameterException(cause.argumentWithMissingParameter, missingIndex).andCause(cause);
 	}
 
-	private static final class MissingNthParameterException extends ArgumentException
+	private static final class MissingNthParameterException extends MissingParameterException
 	{
-		private final String parameterDescription;
 		private final int missingIndex;
 
-		private MissingNthParameterException(String parameterDescription, int missingIndex)
+		private MissingNthParameterException(Argument<?> arg, int missingIndex)
 		{
-			this.parameterDescription = parameterDescription;
+			super(arg);
 			this.missingIndex = missingIndex;
 		}
 
 		@Override
 		protected String getMessage(String argumentNameOrCommandName)
 		{
-			return String.format(	UserErrors.MISSING_NTH_PARAMETER, numberToPositionalString(missingIndex + 1), parameterDescription,
+			return String.format(	UserErrors.MISSING_NTH_PARAMETER, numberToPositionalString(missingIndex + 1), parameterDescription(),
 									argumentNameOrCommandName);
 		}
 
 		/**
 		 * For {@link Serializable}
 		 */
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 2L;
 	}
 
 	/**
@@ -317,6 +334,44 @@ public final class ArgumentExceptions
 				message += ", previous argument: " + previousArgument;
 			}
 			return message;
+		}
+
+		/**
+		 * For {@link Serializable}
+		 */
+		private static final long serialVersionUID = 1L;
+	}
+
+	/**
+	 * See {@link UserErrors#SUGGESTION}
+	 */
+	@CheckReturnValue
+	@Nonnull
+	static ArgumentException withSuggestions(String wrongArgument, List<String> suggestions)
+	{
+		return new SuggestiveArgumentException(wrongArgument, suggestions);
+	}
+
+	static final class SuggestiveArgumentException extends ArgumentException
+	{
+		private final String wrongArgument;
+		private final List<String> suggestions;
+
+		private SuggestiveArgumentException(String wrongArgument, List<String> suggestions)
+		{
+			this.wrongArgument = requireNonNull(wrongArgument);
+			this.suggestions = requireNonNull(suggestions);
+		}
+
+		@Override
+		protected String getMessage(String argumentNameOrCommandName)
+		{
+			return String.format(UserErrors.SUGGESTION, wrongArgument, String.join(lineSeparator() + TAB, suggestions));
+		}
+
+		public List<String> suggestions()
+		{
+			return suggestions;
 		}
 
 		/**

@@ -32,12 +32,12 @@ import javax.annotation.concurrent.NotThreadSafe;
  * <pre>
  * Stores {@link String}s in a <a href="http://en.wikipedia.org/wiki/Trie">trie</a>.
  * The main purpose when using a structure like this is the methods
- * {@link #findLongestPrefix(CharSequence)} and {@link #getEntriesWithPrefix(CharSequence)}.
+ * {@link #findLongestPrefix(CharSequence)} and {@link #getEntriesWithPrefix(String)}.
  *
  * Neither <code>null</code> keys or <code>null</code> values are allowed because just like the
  * devil, they are evil.
  *
- * If you're iterating over the whole trie more often than you do {@link #getEntriesWithPrefix(CharSequence) simple lookups}
+ * If you're iterating over the whole trie more often than you do {@link #getEntriesWithPrefix(String) simple lookups}
  * you're probably better off using a {@link TreeMap}.
  *
  * TODO(jontejj): Implement SortedMap instead of Map
@@ -283,7 +283,7 @@ public final class CharacterTrie<V> extends AbstractMap<String, V>
 		 *
 		 * @param level the current level we're in (in the current stack)
 		 */
-		private Entry<V> successor(Entry<V> predecessor, CharSequence predecessorKey, int level, boolean isGoingDown)
+		private Entry<V> successor(Entry<V> predecessor, CharSequence predecessorKey, Entry<V> prefixRoot, int level, boolean isGoingDown)
 		{
 			if(isValue && predecessor != this && isGoingDown)
 				return this;
@@ -304,11 +304,11 @@ public final class CharacterTrie<V> extends AbstractMap<String, V>
 
 				// Visit the next child
 				if(next != null)
-					return next.getValue().successor(predecessor, predecessorKey, level + 1, true);
+					return next.getValue().successor(predecessor, predecessorKey, prefixRoot, level + 1, true);
 			}
 
-			if(!isRoot()) // Go back up and enter the sibling
-				return parent.successor(predecessor, predecessorKey, level - 1, false);
+			if(this != prefixRoot) // Go back up and enter the sibling
+				return parent.successor(predecessor, predecessorKey, prefixRoot, level - 1, false);
 
 			return null;
 		}
@@ -494,15 +494,14 @@ public final class CharacterTrie<V> extends AbstractMap<String, V>
 	}
 
 	/**
-	 * Returns all entries whose key starts with {@code prefix}. The returned {@link Set} is a view
-	 * so removed elements from it are also removed in this structure.
+	 * Returns all entries whose key starts with {@code prefix}. The returned {@link Map} is an unmodifiable view.
 	 */
-	public Set<Map.Entry<String, V>> getEntriesWithPrefix(final CharSequence prefix)
+	public Map<String, V> getEntriesWithPrefix(final String prefix)
 	{
 		Entry<V> startingPoint = root.findChild(prefix);
 		if(startingPoint == null)
-			return Collections.emptySet();
-		return new EntrySet(startingPoint);
+			return Collections.emptyMap();
+		return new PrefixMap(startingPoint);
 	}
 
 	/**
@@ -561,9 +560,11 @@ public final class CharacterTrie<V> extends AbstractMap<String, V>
 		private int expectedModCount = modCount;
 		private Entry<V> next;
 		private Entry<V> lastReturned = null;
+		private Entry<V> prefixRoot;
 
 		private EntryIterator(Entry<V> startingPoint)
 		{
+			this.prefixRoot = startingPoint;
 			next = startingPoint;
 		}
 
@@ -577,13 +578,13 @@ public final class CharacterTrie<V> extends AbstractMap<String, V>
 			{
 				if(lastReturned == null)
 				{
-					next = next.successor(lastReturned, "", 0, true);
+					next = next.successor(lastReturned, "", prefixRoot, 0, true);
 				}
 				else
 				{
 					CharSequence lastKey = lastReturned.getKey();
 					int lastDepth = lastKey.length();
-					next = next.successor(lastReturned, lastKey, lastDepth, true);
+					next = next.successor(lastReturned, lastKey, prefixRoot, lastDepth, true);
 				}
 			}
 			return next != null;
@@ -614,6 +615,35 @@ public final class CharacterTrie<V> extends AbstractMap<String, V>
 		{
 			if(expectedModCount != modCount)
 				throw new ConcurrentModificationException("Trie modified during iteration");
+		}
+	}
+
+	private final class PrefixMap extends AbstractMap<String, V>
+	{
+		private final CharacterTrie.Entry<V> startingPoint;
+
+		private PrefixMap(CharacterTrie.Entry<V> startingPoint)
+		{
+			this.startingPoint = startingPoint;
+		}
+
+		@Override
+		public int size()
+		{
+			return startingPoint.size();
+		}
+
+		@Override
+		public void clear()
+		{
+			modCount++;
+			startingPoint.clear();
+		}
+
+		@Override
+		public Set<Entry<String, V>> entrySet()
+		{
+			return new EntrySet(startingPoint);
 		}
 	}
 }

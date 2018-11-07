@@ -12,7 +12,9 @@
  */
 package se.softhouse.jargo;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
 import static se.softhouse.common.guavaextensions.Preconditions2.check;
 import static se.softhouse.common.strings.Describables.format;
@@ -23,17 +25,28 @@ import static se.softhouse.jargo.ArgumentExceptions.withMessage;
 import static se.softhouse.jargo.ArgumentExceptions.wrapException;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.SortedSet;
 import java.util.StringJoiner;
+import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -47,8 +60,9 @@ import se.softhouse.common.guavaextensions.Predicates2;
 import se.softhouse.common.numbers.NumberType;
 import se.softhouse.common.strings.StringBuilders;
 import se.softhouse.jargo.Argument.ParameterArity;
+import se.softhouse.jargo.ArgumentBuilder.MapArgumentBuilder;
 import se.softhouse.jargo.ArgumentExceptions.MissingParameterException;
-import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
+import se.softhouse.jargo.ArgumentIterator.CommandInvocation;
 import se.softhouse.jargo.internal.Texts.UserErrors;
 
 /**
@@ -87,32 +101,35 @@ public final class StringParsers
 		 */
 		STRING
 		{
-			@Override
-			public String parse(String value, Locale locale) throws ArgumentException
-			{
-				return value;
-			}
-		};
 
-		// Put other StringParser<String> parsers here
+	@Override
+	public String parse(String value, Locale locale) throws ArgumentException
+	{
+		return value;
+	}
 
-		@Override
-		public String descriptionOfValidValues(Locale locale)
-		{
-			return "any string";
-		}
+	};
 
-		@Override
-		public String defaultValue()
-		{
-			return "";
-		}
+	// Put other StringParser<String> parsers here
 
-		@Override
-		public String metaDescription()
-		{
-			return "<string>";
-		}
+	@Override
+	public String descriptionOfValidValues(Locale locale)
+	{
+		return "any string";
+	}
+
+	@Override
+	public String defaultValue()
+	{
+		return "";
+	}
+
+	@Override
+	public String metaDescription()
+	{
+		return "<string>";
+	}
+
 	}
 
 	/**
@@ -155,6 +172,19 @@ public final class StringParsers
 		{
 			return "<boolean>";
 		}
+
+		@Override
+		public Iterable<String> complete(String partOfWord)
+		{
+			if(partOfWord.equals(""))
+				return asList("true", "false");
+			else if("true".startsWith(partOfWord))
+				return singleton("true");
+			else if("false".startsWith(partOfWord))
+				return singleton("false");
+			else
+				return Collections.emptyList();
+		}
 	}
 
 	/**
@@ -195,6 +225,27 @@ public final class StringParsers
 		public String metaDescription()
 		{
 			return "<path>";
+		}
+
+		@Override
+		public Iterable<String> complete(String partOfWord)
+		{
+			// TODO: consider security if the cli is running on a server
+			List<String> suggestions = new ArrayList<>();
+			try(DirectoryStream<Path> currentDir = Files.newDirectoryStream(Paths.get(".")))
+			{
+				currentDir.forEach(file -> {
+					if(file.getFileName().toString().startsWith(partOfWord))
+					{
+						suggestions.add(file.getFileName().toString());
+					}
+				});
+			}
+			catch(IOException e)
+			{
+				return suggestions;
+			}
+			return suggestions;
 		}
 	}
 
@@ -329,6 +380,28 @@ public final class StringParsers
 		{
 			return "<" + enumType.getSimpleName() + ">";
 		}
+
+		@Override
+		public Iterable<String> complete(String partOfWord)
+		{
+			List<String> suggestions = new ArrayList<>();
+			for(E enumValue : enumType.getEnumConstants())
+			{
+				if(enumValue.name().startsWith(partOfWord))
+				{
+					suggestions.add(enumValue.name());
+				}
+				else
+				{
+					String enumInLowerCase = enumValue.name().toLowerCase(Locale.US);
+					if(enumInLowerCase.startsWith(partOfWord))
+					{
+						suggestions.add(enumInLowerCase);
+					}
+				}
+			}
+			return suggestions;
+		}
 	}
 
 	/**
@@ -447,6 +520,81 @@ public final class StringParsers
 		}
 	}
 
+	static final class TransformingParser<T, F> extends InternalStringParser<F>
+	{
+		private final Function<T, F> transformer;
+		private final InternalStringParser<T> firstParser;
+		private final Predicate<? super T> limiter;
+
+		TransformingParser(InternalStringParser<T> firstParser, Function<T, F> transformer, Predicate<? super T> limiter)
+		{
+			this.firstParser = requireNonNull(firstParser);
+			this.transformer = requireNonNull(transformer);
+			this.limiter = requireNonNull(limiter);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		F parse(ArgumentIterator arguments, F previousOccurance, Argument<?> argumentSettings, Locale locale) throws ArgumentException
+		{
+			T first = firstParser.parse(arguments, null, argumentSettings, locale);
+			if(!limiter.test(first))
+				throw withMessage(format(UserErrors.DISALLOWED_VALUE, first, argumentSettings.descriptionOfValidValues(locale)));
+
+			F result = transformer.apply(first);
+			if(previousOccurance instanceof Collection && result instanceof Collection && argumentSettings.isAllowedToRepeat())
+			{
+				((Collection<Object>) previousOccurance).addAll((Collection<Object>) result);
+				return previousOccurance;
+			}
+			return result;
+		}
+
+		@Override
+		String descriptionOfValidValues(Argument<?> argumentSettings, Locale locale)
+		{
+			if(limiter != Predicates2.alwaysTrue())
+				return limiter.toString();
+			return firstParser.descriptionOfValidValues(argumentSettings, locale);
+		}
+
+		@Override
+		String metaDescriptionInLeftColumn(Argument<?> argumentSettings)
+		{
+			return firstParser.metaDescriptionInLeftColumn(argumentSettings);
+		}
+
+		@Override
+		String metaDescriptionInRightColumn(Argument<?> argumentSettings)
+		{
+			return firstParser.metaDescriptionInRightColumn(argumentSettings);
+		}
+
+		@Override
+		String metaDescription(Argument<?> argumentSettings)
+		{
+			return firstParser.metaDescription(argumentSettings);
+		}
+
+		@Override
+		F defaultValue()
+		{
+			return transformer.apply(firstParser.defaultValue());
+		}
+
+		@Override
+		ParameterArity parameterArity()
+		{
+			return firstParser.parameterArity();
+		}
+
+		@Override
+		Iterable<String> complete(Argument<F> argument, String partOfWord, ArgumentIterator iterator)
+		{
+			return firstParser.complete(null, partOfWord, iterator);
+		}
+	}
+
 	/**
 	 * <pre>
 	 * Makes it possible to convert several (or zero) {@link String}s into a single {@code T} value.
@@ -525,6 +673,16 @@ public final class StringParsers
 		{
 			return ParameterArity.AT_LEAST_ONE_ARGUMENT;
 		}
+
+		/**
+		 * @param argument the argument that was matched
+		 * @param partOfWord a part of a parameter
+		 * @param iterator current iterator
+		 */
+		Iterable<String> complete(@Nullable Argument<T> argument, String partOfWord, ArgumentIterator iterator)
+		{
+			return Collections.emptyList();
+		}
 	}
 
 	@CheckReturnValue
@@ -596,7 +754,7 @@ public final class StringParsers
 		@Override
 		String parse(ArgumentIterator arguments, String previousOccurance, Argument<?> argumentSettings, Locale locale) throws ArgumentException
 		{
-			throw arguments.currentParser().helpFor(arguments, locale);
+			throw arguments.currentHolder().parser().helpFor(arguments, locale);
 		}
 
 		@Override
@@ -616,43 +774,21 @@ public final class StringParsers
 		{
 			return "<argument-to-print-help-for>";
 		}
-	}
-
-	/**
-	 * Runs a {@link Runnable} when {@link StringParser#parse(String, Locale) parse} is invoked.
-	 */
-	static final class RunnableParser extends InternalStringParser<Object>
-	{
-		final Runnable target;
-
-		RunnableParser(Runnable target)
-		{
-			this.target = target;
-		}
 
 		@Override
-		Object parse(ArgumentIterator arguments, Object previousOccurance, Argument<?> argumentSettings, Locale locale) throws ArgumentException
+		Iterable<String> complete(Argument<String> argument, String partOfWord, ArgumentIterator iterator)
 		{
-			target.run();
-			return null;
-		}
+			if(iterator.hasNext())
+			{
+				iterator.next();
+			}
+			CommandLineParserInstance rootParser = iterator.currentHolder().rootParser();
+			SortedSet<String> suggestions = new TreeSet<>();
+			Optional<CommandInvocation> lastCommand = iterator.lastCommand();
+			if(lastCommand.isPresent())
+				return rootParser.completer().complete(lastCommand.get().command.parser(), partOfWord, suggestions, iterator);
 
-		@Override
-		String descriptionOfValidValues(Argument<?> argumentSettings, Locale locale)
-		{
-			return "";
-		}
-
-		@Override
-		Object defaultValue()
-		{
-			return null;
-		}
-
-		@Override
-		String metaDescription(Argument<?> argumentSettings)
-		{
-			return "";
+			return rootParser.completer().complete(iterator.currentHolder().parser(), partOfWord, suggestions, iterator);
 		}
 	}
 
@@ -711,6 +847,12 @@ public final class StringParsers
 				sb.append(", ").append(String.valueOf(values.next()));
 			}
 			return sb.toString();
+		}
+
+		@Override
+		Iterable<String> complete(Argument<List<T>> argument, String partOfWord, ArgumentIterator iterator)
+		{
+			return elementParser.complete(null, partOfWord, iterator);
 		}
 	}
 
@@ -868,11 +1010,18 @@ public final class StringParsers
 			super(parser);
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		List<T> parse(final ArgumentIterator arguments, List<T> previouslyCreatedList, final Argument<?> argumentSettings, Locale locale)
 				throws ArgumentException
 		{
 			T parsedValue = elementParser().parse(arguments, null, argumentSettings, locale);
+
+			if(elementParser() instanceof Command)
+			{
+				// Re-check as parse is recursive in this case
+				previouslyCreatedList = (List<T>) arguments.currentHolder().getValue(argumentSettings);
+			}
 
 			List<T> listToStoreRepeatedValuesIn = previouslyCreatedList;
 			if(listToStoreRepeatedValuesIn == null)
@@ -942,9 +1091,10 @@ public final class StringParsers
 			{
 				map = defaultValue();
 			}
-
 			String keyValue = arguments.next();
-			String key = getKey(keyValue, argumentSettings);
+			String separator = argumentSettings.separator();
+			String key = getKey(keyValue, separator)
+					.orElseThrow(() -> withMessage(format(UserErrors.MISSING_KEY_VALUE_SEPARATOR, argumentSettings, keyValue, separator)));
 			K parsedKey = keyParser.parse(key, locale);
 			V oldValue = map.get(parsedKey);
 
@@ -972,15 +1122,14 @@ public final class StringParsers
 		/**
 		 * Fetch "key" from "key=value"
 		 */
-		private String getKey(String keyValue, Argument<?> argumentSettings) throws ArgumentException
+		private Optional<String> getKey(String keyValue, String separator) throws ArgumentException
 		{
 			if(valueParser.parameterArity() == ParameterArity.NO_ARGUMENTS)
-				return keyValue;// Consume the whole string as the key as there's no value to parse
-			String separator = argumentSettings.separator();
+				return Optional.of(keyValue);// Consume the whole string as the key as there's no value to parse
 			int keyEndIndex = keyValue.indexOf(separator);
 			if(keyEndIndex == -1)
-				throw withMessage(format(UserErrors.MISSING_KEY_VALUE_SEPARATOR, argumentSettings, keyValue, separator));
-			return keyValue.substring(0, keyEndIndex);
+				return Optional.empty();
+			return Optional.of(keyValue.substring(0, keyEndIndex));
 		}
 
 		/**
@@ -1023,6 +1172,41 @@ public final class StringParsers
 			String separator = argumentSettings.separator();
 			String valueMeta = valueParser.metaDescription(argumentSettings);
 			return keyMeta + separator + valueMeta;
+		}
+
+		@Override
+		Iterable<String> complete(Argument<Map<K, V>> arg, String partOfWord, ArgumentIterator iterator)
+		{
+			List<String> suggestions = new ArrayList<>();
+			String separator = arg.separator();
+			Optional<String> maybeKey = getKey(partOfWord, separator);
+			if(!maybeKey.isPresent())
+			{
+				for(String suggestion : keyParser.complete(partOfWord))
+				{
+					suggestions.add(iterator.getCurrentArgumentName() + suggestion + arg.separator());
+				}
+			}
+			else
+			{
+				String key = maybeKey.get();
+				String value = getValue(key, partOfWord, arg);
+
+				for(String suggestion : valueParser.complete(null, value, iterator))
+				{
+					// Because = is a word boundary by default in bash
+					if(arg.separator().equals(MapArgumentBuilder.DEFAULT_KV_SEPARATOR)
+							&& (!value.isEmpty() || !iterator.isCompletingGeneratedSuggestion))
+					{
+						suggestions.add(suggestion);
+					}
+					else
+					{
+						suggestions.add(iterator.getCurrentArgumentName() + key + arg.separator() + suggestion);
+					}
+				}
+			}
+			return suggestions;
 		}
 	}
 
@@ -1089,6 +1273,18 @@ public final class StringParsers
 		public String toString()
 		{
 			return descriptionOfValidValues(Locale.US);
+		}
+
+		@Override
+		public Iterable<String> complete(String partOfWord)
+		{
+			return stringParser.complete(partOfWord);
+		}
+
+		@Override
+		Iterable<String> complete(Argument<T> argument, String partOfWord, ArgumentIterator iterator)
+		{
+			return stringParser.complete(partOfWord);
 		}
 	}
 }

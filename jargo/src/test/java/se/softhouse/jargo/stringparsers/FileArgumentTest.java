@@ -17,11 +17,14 @@ import static se.softhouse.jargo.Arguments.fileArgument;
 import static se.softhouse.jargo.utils.Assertions2.assertThat;
 
 import java.io.File;
+import java.util.SortedSet;
 
 import org.junit.Test;
 
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.Arguments;
+import se.softhouse.jargo.CommandLineParser;
+import se.softhouse.jargo.FakeCompleter;
 import se.softhouse.jargo.StringParsers;
 import se.softhouse.jargo.Usage;
 
@@ -49,6 +52,16 @@ public class FileArgumentTest
 	{
 		File defaultFile = fileArgument("-f").parse();
 		assertThat(defaultFile).exists().isDirectory().isEqualTo(new File("."));
+	}
 
+	@Test
+	public void testThatFilesAreCompletedCorrectly() throws Exception
+	{
+		CommandLineParser parser = CommandLineParser.withArguments(fileArgument("-f").build());
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "-f", "sr");
+		assertThat(suggestions).containsOnly("src");
+
+		suggestions = FakeCompleter.complete(parser, "-f", "non-existing");
+		assertThat(suggestions).isEmpty();
 	}
 }

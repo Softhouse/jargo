@@ -13,6 +13,7 @@
 package se.softhouse.jargo.commands;
 
 import static org.fest.assertions.Assertions.assertThat;
+
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
 
@@ -46,6 +47,7 @@ public class Build extends Command
 	{
 		private boolean cleaned;
 		private boolean built;
+		private boolean logged;
 
 		void build()
 		{
@@ -70,10 +72,22 @@ public class Build extends Command
 			return built;
 		}
 
+		boolean isLogged()
+		{
+			return logged;
+		}
+
+		void log()
+		{
+			this.logged = true;
+		}
+
 		void reset()
 		{
 			cleaned = false;
 			built = false;
+			logged = false;
 		}
+
 	}
 }

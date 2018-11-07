@@ -12,7 +12,11 @@
  */
 package se.softhouse.jargo.internal;
 
-import se.softhouse.common.strings.StringsUtil;
+import static java.lang.System.lineSeparator;
+import static se.softhouse.common.strings.StringsUtil.TAB;
+
+import java.nio.charset.StandardCharsets;
+
 import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.ArgumentBuilder;
 import se.softhouse.jargo.ArgumentException;
@@ -20,9 +24,6 @@ import se.softhouse.jargo.Command;
 import se.softhouse.jargo.CommandLineParser;
 import se.softhouse.jargo.StringParser;
 import se.softhouse.jargo.StringParsers;
-
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
-import static se.softhouse.common.strings.StringsUtil.TAB;
 
 /**
  * Contains {@link String#format(String, Object...)} ready strings.
@@ -74,7 +75,7 @@ public final class Texts
 
 		/**
 		 * Indicates that if a file called with what comes after the @ sign exists, arguments should
-		 * be read from it (in {@link StringsUtil#UTF8}) before continuing on with the parsing.
+		 * be read from it (in {@link StandardCharsets#UTF_8}) before continuing on with the parsing.
 		 */
 		public static final String FILE_REFERENCE_PREFIX = "@";
 	}
@@ -100,7 +101,7 @@ public final class Texts
 		 * Used by {@link CommandLineParser#parse(String...)}.
 		 * </pre>
 		 */
-		public static final String SUGGESTION = "Didn't expect %s, did you mean one of these?" + NEWLINE + TAB + "%s";
+		public static final String SUGGESTION = "Didn't expect %s, did you mean one of these?" + lineSeparator() + TAB + "%s";
 
 		/**
 		 * <pre>
@@ -243,6 +244,13 @@ public final class Texts
 		 * {@link ArgumentBuilder#variableArity()}
 		 */
 		public static final String SEVERAL_VARIABLE_ARITY_PARSERS = "Several unnamed arguments are configured to receive a variable arity of parameters: %s";
+
+		/**
+		 * Parameter %s = a list with all parameters that is configured with
+		 * {@link ArgumentBuilder#repeated()} and are {@link ArgumentBuilder#names(String...) indexed}
+		 */
+		public static final String INDEXED_AND_REPEATED_ARGUMENT = "Argument: %s is both indexed and repeated. If you expect more than one parameter, use arity(...) / variableArity() instead.";
+
 		/**
 		 * Parameter %s = a name that would cause ambiguous parsing
 		 */
@@ -280,6 +288,6 @@ public final class Texts
 		 * Parameter %s = the illegal argument that the {@link CommandLineParser} wasn't
 		 * configured to handle
 		 */
-		public static final String ILLEGAL_ARGUMENT = "%s was not found in this result at all. Did you perhaps forget to add it to withArguments(...)?";
+		public static final String ILLEGAL_ARGUMENT = "%s was not found in this result at all. Did you perhaps forget to add it to withArguments(...)? Another failure cause could be that you are expecting to access arguments to subcommands from a parent command, that is not enabled by default.";
 	}
 }

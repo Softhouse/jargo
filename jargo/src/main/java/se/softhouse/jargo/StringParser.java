@@ -12,12 +12,15 @@
  */
 package se.softhouse.jargo;
 
+import java.util.Collections;
 import java.util.Locale;
 import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import se.softhouse.common.strings.StringsUtil;
 
 /**
  * Parses {@link String}s into values of the type {@code T}.
@@ -147,4 +150,21 @@ public interface StringParser<T> extends Function<String, T>
 	 */
 	@Nonnull
 	String metaDescription();
+
+	/**
+	 * Generates a list of suggestions to make {@code partOfWord} a valid argument that could be passed to {@link #parse(String, Locale)}
+	 * when the program is actually executed later on.
+	 * Preferably this method should be really quick to enable a smooth user experience in bash/etc.
+	 * <br>
+	 * <b>Tip</b>: When you have your valid options, you can use {@link StringsUtil#prefixes(String, java.util.Collection)}
+	 * to filter out the options that still match {@code partOfWord}.
+	 * 
+	 * @param partOfWord a potential part of an argument that this argument might receive
+	 * @return a list of strings that would complete the parameter into a valid argument (defaults to an empty list)
+	 */
+	@Nonnull
+	default Iterable<String> complete(String partOfWord)
+	{
+		return Collections.emptyList();
+	}
 }

@@ -12,12 +12,25 @@
  */
 package se.softhouse.jargo.commands;
 
+import java.util.List;
+
+import se.softhouse.jargo.Argument;
 import se.softhouse.jargo.Command;
 import se.softhouse.jargo.ParsedArguments;
 
 public final class ProfilingExecuteCommand extends Command
 {
 	public int numberOfCallsToExecute;
+
+	public ProfilingExecuteCommand(Argument<?> ... args)
+	{
+		super(args);
+	}
+
+	public ProfilingExecuteCommand(List<Argument<?>> args)
+	{
+		super(args);
+	}
 
 	@Override
 	public String commandName()

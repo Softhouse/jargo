@@ -1,0 +1,6 @@
+Catch me
+
+Usage: exceptionFromCommand [Arguments]
+
+Arguments:
+catcher 

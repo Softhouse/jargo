@@ -15,9 +15,11 @@ package se.softhouse.jargo;
 import static org.fest.assertions.Assertions.assertThat;
 import static se.softhouse.jargo.Arguments.integerArgument;
 import static se.softhouse.jargo.Arguments.optionArgument;
+import static se.softhouse.jargo.Arguments.stringArgument;
 import static se.softhouse.jargo.CommandLineParser.withArguments;
 
 import java.util.Map;
+import java.util.SortedSet;
 
 import org.junit.Test;
 
@@ -47,6 +49,13 @@ public class IgnoringCaseTest
 	}
 
 	@Test
+	public void testThatIgnoringCaseWorksForEmptySeparator() throws ArgumentException
+	{
+		String hello = stringArgument("-a").separator("").ignoreCase().parse("-Ahello");
+		assertThat(hello).isEqualTo("hello");
+	}
+
+	@Test
 	public void testWithPropertyMapNotIgnoringCase() throws ArgumentException
 	{
 		Argument<String> indexed = Arguments.stringArgument().build();
@@ -58,6 +67,16 @@ public class IgnoringCaseTest
 		assertThat(parsedArguments.get(small).get("big")).isNull();
 		assertThat(parsedArguments.get(big).get("big")).isNull();
 		assertThat(parsedArguments.get(indexed)).isEqualTo("-Bbig=5");
+	}
+
+	@Test
+	public void testThatCompletingWorksForIgnoreCaseArguments() throws Exception
+	{
+		Argument<String> name = stringArgument("--name").ignoreCase().build();
+		CommandLineParser parser = CommandLineParser.withArguments(name);
+
+		SortedSet<String> suggestions = FakeCompleter.complete(parser, "--Na");
+		assertThat(suggestions).containsOnly("--Name ");
 	}
 
 	@Test(expected = ArgumentException.class)

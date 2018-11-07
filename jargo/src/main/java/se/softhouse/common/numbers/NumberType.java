@@ -12,12 +12,12 @@
  */
 package se.softhouse.common.numbers;
 
+import static java.lang.System.lineSeparator;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static se.softhouse.common.strings.Describables.illegalArgument;
 import static se.softhouse.common.strings.Describers.numberDescriber;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.strings.StringsUtil.pointingAtIndex;
 
 import java.math.BigDecimal;
@@ -216,7 +216,7 @@ public abstract class NumberType<T extends Number>
 		return formatter;
 	}
 
-	private static final String TEMPLATE = "'%s' is not a valid %s (Localization: %s)" + NEWLINE + " %s";
+	private static final String TEMPLATE = "'%s' is not a valid %s (Localization: %s)" + lineSeparator() + " %s";
 
 	Describable formatError(Object invalidValue, Locale locale, ParsePosition positionForInvalidCharacter)
 	{

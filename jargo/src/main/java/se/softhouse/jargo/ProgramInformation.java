@@ -12,16 +12,16 @@
  */
 package se.softhouse.jargo;
 
-import se.softhouse.common.classes.Classes;
-import se.softhouse.common.strings.Describable;
-import se.softhouse.common.strings.Describables;
+import static java.lang.System.lineSeparator;
+import static java.util.Objects.requireNonNull;
+import static se.softhouse.common.strings.Describables.cache;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.concurrent.Immutable;
 
-import static java.util.Objects.requireNonNull;
-import static se.softhouse.common.strings.Describables.cache;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
+import se.softhouse.common.classes.Classes;
+import se.softhouse.common.strings.Describable;
+import se.softhouse.common.strings.Describables;
 
 /**
  * Information about a program, printed in {@link Usage} before any {@link Argument}s are described.
@@ -80,7 +80,7 @@ final class ProgramInformation
 	ProgramInformation programDescription(String aProgramDescription)
 	{
 		requireNonNull(aProgramDescription);
-		return new ProgramInformation(programName, NEWLINE + aProgramDescription + NEWLINE);
+		return new ProgramInformation(programName, lineSeparator() + aProgramDescription + lineSeparator());
 	}
 
 	/**

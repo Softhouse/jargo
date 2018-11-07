@@ -12,26 +12,11 @@
  */
 package se.softhouse.common.strings;
 
-import com.google.common.testing.NullPointerTester;
-import com.google.common.testing.NullPointerTester.Visibility;
-import org.junit.Test;
-import se.softhouse.common.strings.Describers.BooleanDescribers;
-import se.softhouse.common.testlib.Locales;
-import se.softhouse.common.testlib.ResourceLoader;
-
-import java.io.File;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import static com.google.common.collect.Maps.newLinkedHashMap;
+import static java.lang.System.lineSeparator;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static org.fest.assertions.Assertions.*;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static se.softhouse.common.strings.Describers.asFunction;
 import static se.softhouse.common.strings.Describers.booleanAsEnabledDisabled;
@@ -42,8 +27,27 @@ import static se.softhouse.common.strings.Describers.mapDescriber;
 import static se.softhouse.common.strings.Describers.numberDescriber;
 import static se.softhouse.common.strings.Describers.toStringDescriber;
 import static se.softhouse.common.strings.Describers.withConstantString;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.testlib.Locales.TURKISH;
+
+import java.io.File;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.junit.Test;
+
+import com.google.common.testing.NullPointerTester;
+import com.google.common.testing.NullPointerTester.Visibility;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.strings.Describers.BooleanDescribers;
+import se.softhouse.common.testlib.Explanation;
+import se.softhouse.common.testlib.Locales;
+import se.softhouse.common.testlib.ResourceLoader;
 
 /**
  * Tests for {@link Describers}
@@ -188,7 +192,7 @@ public class DescribersTest
 		Describer<Map<String, Integer>> customValueKeySeparator = mapDescriber(	Describers.<String>withConstantString("foo"),
 																				Describers.<Integer>withConstantString("bar"), ":");
 		String describedMap = customValueKeySeparator.describe(values, locale);
-		assertThat(describedMap).isEqualTo("foo:bar" + NEWLINE + "foo:bar");
+		assertThat(describedMap).isEqualTo("foo:bar" + lineSeparator() + "foo:bar");
 
 		assertThat(customValueKeySeparator.describe(Collections.<String, Integer>emptyMap(), locale)).isEqualTo("Empty map");
 
@@ -205,10 +209,11 @@ public class DescribersTest
 		// Test with custom valueDescriber, custom keyDescriber
 		Describer<Map<String, Integer>> customValueAndKey = mapDescriber(	Describers.<String>withConstantString("foo"),
 																			Describers.<Integer>withConstantString("bar"));
-		assertThat(customValueAndKey.describe(values, locale)).contains("foo=bar" + NEWLINE + "foo=bar");
+		assertThat(customValueAndKey.describe(values, locale)).contains("foo=bar" + lineSeparator() + "foo=bar");
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatMissingKeyThrows()
 	{
 		Map<String, Integer> map = newLinkedHashMap();

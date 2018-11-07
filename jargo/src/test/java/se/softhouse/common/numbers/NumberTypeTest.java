@@ -13,6 +13,7 @@
 package se.softhouse.common.numbers;
 
 import static java.lang.String.format;
+import static java.lang.System.lineSeparator;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static se.softhouse.common.numbers.NumberType.BIG_DECIMAL;
@@ -22,7 +23,6 @@ import static se.softhouse.common.numbers.NumberType.INTEGER;
 import static se.softhouse.common.numbers.NumberType.LONG;
 import static se.softhouse.common.numbers.NumberType.OUT_OF_RANGE;
 import static se.softhouse.common.numbers.NumberType.SHORT;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.testlib.Locales.SWEDISH;
 
 import java.math.BigDecimal;
@@ -35,6 +35,9 @@ import org.junit.Test;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import se.softhouse.common.testlib.Explanation;
 
 /**
  * Tests for {@link NumberType}
@@ -96,6 +99,7 @@ public class NumberTypeTest
 		}
 	}
 
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	private void testUnlimitedType(NumberType<?> type)
 	{
 		try
@@ -142,6 +146,7 @@ public class NumberTypeTest
 	}
 
 	@Test(expected = IllegalArgumentException.class)
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatEmptyInputThrows() throws Exception
 	{
 		BYTE.parse("");
@@ -192,6 +197,7 @@ public class NumberTypeTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testInvalidShortNumbers()
 	{
 		List<Integer> invalidInput = Arrays.asList(Short.MIN_VALUE - 1, Short.MAX_VALUE + 1);
@@ -210,6 +216,7 @@ public class NumberTypeTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testInvalidIntegerNumbers()
 	{
 		List<Long> invalidInput = Arrays.asList((long) Integer.MIN_VALUE - 1, (long) Integer.MAX_VALUE + 1);
@@ -228,6 +235,7 @@ public class NumberTypeTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testInvalidLongNumbers()
 	{
 		List<BigInteger> invalidInput = Arrays.asList(BigInteger.valueOf(Long.MIN_VALUE).subtract(BigInteger.ONE), biggerThanLong);
@@ -257,6 +265,7 @@ public class NumberTypeTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatUnparsableIntegerGeneratesProperErrorMessage() throws Exception
 	{
 		try
@@ -269,7 +278,7 @@ public class NumberTypeTest
 			/**
 			 * @formatter.off
 			 */
-			assertThat(e).hasMessage("'123a' is not a valid integer (Localization: English)" + NEWLINE +
+			assertThat(e).hasMessage("'123a' is not a valid integer (Localization: English)" + lineSeparator() +
 			                         "    ^");
 			/**
 			 * @formatter.on
@@ -278,6 +287,7 @@ public class NumberTypeTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatUnparsableBigIntegerGeneratesProperErrorMessage() throws Exception
 	{
 		try
@@ -290,7 +300,7 @@ public class NumberTypeTest
 			/**
 			 * @formatter.off
 			 */
-			assertThat(e).hasMessage("'12.3' is not a valid big-integer (Localization: English)" + NEWLINE +
+			assertThat(e).hasMessage("'12.3' is not a valid big-integer (Localization: English)" + lineSeparator() +
 			                         "   ^");
 			/**
 			 * @formatter.on
@@ -299,6 +309,7 @@ public class NumberTypeTest
 	}
 
 	@Test
+	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = Explanation.FAIL_FAST)
 	public void testThatDecimalSeparatorCausesParseErrorForDiscreetTypes() throws Exception
 	{
 		List<NumberType<?>> discreetTypes = Arrays.<NumberType<?>>asList(BYTE, SHORT, INTEGER, LONG, BIG_INTEGER);

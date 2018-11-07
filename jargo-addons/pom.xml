@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>se.softhouse</groupId>
 		<artifactId>jargo-parent</artifactId>
-		<version>0.4.5-SNAPSHOT</version>
+		<version>0.4.15-SNAPSHOT</version>
 	</parent>
 	<artifactId>jargo-addons</artifactId>
 	<description>Code that could have been added to jargo if it didn't require third party dependencies.</description>
@@ -11,7 +11,7 @@
 		<dependency>
 			<groupId>se.softhouse</groupId>
 			<artifactId>jargo</artifactId>
-			<version>0.4.5-SNAPSHOT</version>
+			<version>0.4.15-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>joda-time</groupId>
@@ -22,14 +22,14 @@
 		<dependency>
 			<groupId>se.softhouse</groupId>
 			<artifactId>common-test</artifactId>
-			<version>0.4.5-SNAPSHOT</version>
+			<version>0.4.15-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- Reuses test classes in jargo without having to publish them on maven central -->
 		<dependency>
 			<groupId>se.softhouse</groupId>
 			<artifactId>jargo</artifactId>
-			<version>0.4.5-SNAPSHOT</version>
+			<version>0.4.15-SNAPSHOT</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>

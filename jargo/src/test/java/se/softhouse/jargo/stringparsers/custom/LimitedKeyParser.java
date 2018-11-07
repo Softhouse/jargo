@@ -14,14 +14,16 @@ package se.softhouse.jargo.stringparsers.custom;
 
 import static se.softhouse.jargo.StringParsers.stringParser;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
 
 import se.softhouse.jargo.ArgumentException;
 import se.softhouse.jargo.ArgumentExceptions;
 import se.softhouse.jargo.ForwardingStringParser.SimpleForwardingStringParser;
-
-import com.google.common.collect.ImmutableSet;
 
 public class LimitedKeyParser extends SimpleForwardingStringParser<String>
 {
@@ -46,5 +48,19 @@ public class LimitedKeyParser extends SimpleForwardingStringParser<String>
 	public String descriptionOfValidValues(Locale locale)
 	{
 		return "any of " + validKeys;
+	}
+
+	@Override
+	public Iterable<String> complete(String partOfWord)
+	{
+		List<String> suggestedKeys = new ArrayList<>();
+		for(String validKey : validKeys)
+		{
+			if(validKey.startsWith(partOfWord))
+			{
+				suggestedKeys.add(validKey);
+			}
+		}
+		return suggestedKeys;
 	}
 }

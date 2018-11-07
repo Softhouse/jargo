@@ -13,10 +13,10 @@
 package se.softhouse.jargo;
 
 import static java.lang.Math.max;
+import static java.lang.System.lineSeparator;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
 import static se.softhouse.common.strings.StringsUtil.repeat;
 import static se.softhouse.jargo.Argument.IS_INDEXED;
 import static se.softhouse.jargo.Argument.IS_OF_VARIABLE_ARITY;
@@ -84,6 +84,7 @@ public final class Usage implements Serializable
 	private final transient ProgramInformation program;
 	private final transient boolean forCommand;
 	// TODO(jontejj): try getting the correct value automatically, if not possible fall back to 80
+	// exec tput cols 2> /dev/tty
 	private transient int columnWidth = 80;
 
 	private transient String fromSerializedUsage = null;
@@ -119,7 +120,10 @@ public final class Usage implements Serializable
 	private Usage(String fromSerializedUsage)
 	{
 		// All these are unused as the usage is already constructed
-		this(null, null, null, false);
+		this.unfilteredArguments = null;
+		this.locale = null;
+		this.program = null;
+		this.forCommand = false;
 		this.fromSerializedUsage = fromSerializedUsage;
 	}
 
@@ -224,7 +228,7 @@ public final class Usage implements Serializable
 	private String header()
 	{
 		if(forCommand) // Commands get their header from their meta description
-			return hasArguments() ? NEWLINE : "";
+			return hasArguments() ? lineSeparator() : "";
 
 		String mainUsage = UsageTexts.USAGE_HEADER + program.programName();
 
@@ -233,11 +237,11 @@ public final class Usage implements Serializable
 			mainUsage += UsageTexts.ARGUMENT_INDICATOR;
 		}
 
-		mainUsage += NEWLINE + Lines.wrap(program.programDescription(), columnWidth, locale);
+		mainUsage += lineSeparator() + Lines.wrap(program.programDescription(), columnWidth, locale);
 
 		if(hasArguments())
 		{
-			mainUsage += NEWLINE + UsageTexts.ARGUMENT_HEADER + ":" + NEWLINE;
+			mainUsage += lineSeparator() + UsageTexts.ARGUMENT_HEADER + ":" + lineSeparator();
 		}
 
 		return mainUsage;
@@ -340,7 +344,7 @@ public final class Usage implements Serializable
 		{
 			row.descriptionColumn.append(Lines.wrap(description, indexOfDescriptionColumn, columnWidth, locale));
 			addIndicators(arg, row.descriptionColumn);
-			row.descriptionColumn.append(NEWLINE);
+			row.descriptionColumn.append(lineSeparator());
 			valueExplanation(arg, row.descriptionColumn);
 		}
 		else
@@ -379,15 +383,15 @@ public final class Usage implements Serializable
 		{
 			if(!validValuesDescription.isEmpty())
 			{
-				target.append(NEWLINE);
+				target.append(lineSeparator());
 			}
 			String spaces = repeat(" ", UsageTexts.DEFAULT_VALUE_START.length());
-			descriptionOfDefaultValue = descriptionOfDefaultValue.replace(NEWLINE, NEWLINE + spaces);
+			descriptionOfDefaultValue = descriptionOfDefaultValue.replace(lineSeparator(), lineSeparator() + spaces);
 			target.append(UsageTexts.DEFAULT_VALUE_START).append(descriptionOfDefaultValue);
 		}
 	}
 
-	private static final Pattern BY_NEWLINE = Pattern.compile(NEWLINE);
+	private static final Pattern BY_NEWLINE = Pattern.compile(lineSeparator());
 
 	private void appendRowTo(Row row, Appendable target) throws IOException
 	{
@@ -406,13 +410,13 @@ public final class Usage implements Serializable
 				target.append(repeat(" ", paddingWidth));
 				target.append(descriptionLines.next());
 			}
-			target.append(NEWLINE);
+			target.append(lineSeparator());
 		}
 		while(descriptionLines.hasNext())
 		{
 			target.append(repeat(" ", indexOfDescriptionColumn));
 			target.append(descriptionLines.next());
-			target.append(NEWLINE);
+			target.append(lineSeparator());
 		}
 	}
 

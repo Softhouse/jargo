@@ -14,11 +14,17 @@ package se.softhouse.jargo;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
+import static se.softhouse.jargo.Arguments.command;
+import static se.softhouse.jargo.CommandLineParser.STANDARD_COMPLETER;
 import static se.softhouse.jargo.CommandLineParser.US_BY_DEFAULT;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
@@ -27,7 +33,8 @@ import javax.annotation.concurrent.Immutable;
 
 import se.softhouse.common.guavaextensions.Suppliers2;
 import se.softhouse.common.strings.Describable;
-import se.softhouse.jargo.CommandLineParserInstance.ArgumentIterator;
+import se.softhouse.jargo.Argument.ParameterArity;
+import se.softhouse.jargo.ArgumentIterator.CommandInvocation;
 import se.softhouse.jargo.StringParsers.InternalStringParser;
 import se.softhouse.jargo.internal.Texts.UsageTexts;
 
@@ -39,18 +46,15 @@ import se.softhouse.jargo.internal.Texts.UsageTexts;
  * {@link Command}s have a {@link CommandLineParser} themselves (and thereby sub-commands are allowed as well), that is,
  * they execute a command and may support contextual arguments as specified by the constructor {@link Command#Command(Argument...)}.
  *
- * Sub-commands are executed before their parent {@link Command}.
+ * Sub-commands are executed after their parent {@link Command}.
  *
  * To integrate your {@link Command} into an {@link Argument} use {@link Arguments#command(Command)}
  * or {@link CommandLineParser#withCommands(Command...)} if you have several commands.
  *
  * If you support several commands and a user enters several of them at the same
  * time they will be executed in the order given to {@link CommandLineParser#parse(String...)}.
- * If any {@link StringParser#parse(String, Locale) parse} errors occurs (for {@link Command#Command(Argument...) command arguments}) the {@link Command}
- * will not be executed. However, if given multiple commands and {@link StringParser#parse(String, Locale) parse errors} occurs,
- * all {@link Command}s given before the {@link Command} with {@link StringParser#parse(String, Locale) parse errors} will have been executed.
- * This is so because {@link Command#Command(Argument...) command arguments} are allowed to be dependent on earlier {@link Command}s being executed.
- * So it's recommended to let the user know when you've executed a {@link Command}.
+ * If any {@link StringParser#parse(String, Locale) parse} errors occurs (for {@link Command#Command(Argument...) command arguments}) no {@link Command}
+ * will be executed. So all arguments, for all commands given, are parsed before any execution occurs.
  *
  * <b>Mutability note:</b> although a {@link Command} should be {@link Immutable}
  * the objects it handles doesn't have to be. So repeated invocations of execute
@@ -106,7 +110,7 @@ public abstract class Command extends InternalStringParser<ParsedArguments> impl
 		@Override
 		public CommandLineParserInstance get()
 		{
-			return new CommandLineParserInstance(commandArguments, ProgramInformation.AUTO, US_BY_DEFAULT, true);
+			return new CommandLineParserInstance(commandArguments, ProgramInformation.AUTO, US_BY_DEFAULT, true, STANDARD_COMPLETER);
 		}
 	});
 
@@ -124,6 +128,23 @@ public abstract class Command extends InternalStringParser<ParsedArguments> impl
 	protected Command(List<Argument<?>> commandArguments)
 	{
 		this.commandArguments = Collections.unmodifiableList(commandArguments);
+	}
+
+	/**
+	 * Useful if your {@link Command} has subcommands that you'll want to pass into the
+	 * {@link Command#Command(List)} constructor
+	 * 
+	 * @param commands the subcommands
+	 * @return the subcommands as an argument list
+	 */
+	public static List<Argument<?>> subCommands(final Command ... commands)
+	{
+		List<Argument<?>> commandsAsArguments = new ArrayList<>(commands.length);
+		for(Command c : commands)
+		{
+			commandsAsArguments.add(command(c).build());
+		}
+		return commandsAsArguments;
 	}
 
 	/**
@@ -168,19 +189,27 @@ public abstract class Command extends InternalStringParser<ParsedArguments> impl
 	final ParsedArguments parse(final ArgumentIterator arguments, final ParsedArguments previousOccurance, final Argument<?> argumentSettings,
 			Locale locale) throws ArgumentException
 	{
-		arguments.rememberAsCommand();
+		// TODO: how to support rejoining for repeated commands? How to pick which invocation that should get the arg?
+		if(arguments.currentHolder().wasGiven(argumentSettings) && !argumentSettings.isAllowedToRepeat())
+			return resumeParsing(arguments, previousOccurance, locale);
+		ParsedArguments holder = new ParsedArguments(parser(), arguments.currentHolder());
+		arguments.rememberInvocationOfCommand(this, holder, argumentSettings);
+		parser().parseArguments(holder, arguments, locale);
+		return holder;
+	}
 
-		ParsedArguments parsedArguments = parser().parse(arguments, locale);
-
-		arguments.rememberInvocationOfCommand(this, parsedArguments);
-
-		return parsedArguments;
+	final ParsedArguments resumeParsing(final ArgumentIterator arguments, final ParsedArguments previousOccurance, Locale locale)
+			throws ArgumentException
+	{
+		parser().parseArguments(previousOccurance, arguments, locale);
+		arguments.temporaryRepitionAllowedForCommand = false;
+		return previousOccurance;
 	}
 
 	/**
 	 * The parser for parsing the {@link Argument}s passed to {@link Command#Command(Argument...)}
 	 */
-	private CommandLineParserInstance parser()
+	CommandLineParserInstance parser()
 	{
 		return commandArgumentParser.get();
 	}
@@ -205,7 +234,7 @@ public abstract class Command extends InternalStringParser<ParsedArguments> impl
 	}
 
 	@Override
-	final String metaDescription(Argument<?> argumentSettings)
+	String metaDescription(Argument<?> argumentSettings)
 	{
 		return "";
 	}
@@ -214,5 +243,31 @@ public abstract class Command extends InternalStringParser<ParsedArguments> impl
 	String metaDescriptionInRightColumn(Argument<?> argumentSettings)
 	{
 		return UsageTexts.ARGUMENT_HEADER;
+	}
+
+	@Override
+	ParameterArity parameterArity()
+	{
+		if(parser().allArguments().isEmpty())
+			return ParameterArity.NO_ARGUMENTS;
+		return ParameterArity.AT_LEAST_ONE_ARGUMENT;
+	}
+
+	@Override
+	Iterable<String> complete(Argument<ParsedArguments> argument, String partOfWord, ArgumentIterator iterator)
+	{
+		iterator.setCurrentArgumentName(argument.toString());
+		Optional<CommandInvocation> lastCommand = iterator.lastCommand();
+		if(lastCommand.isPresent() && lastCommand.get().argumentSettingsForInvokedCommand == argument)
+		{
+			iterator.setCurrentHolder(lastCommand.get().args);
+		}
+		else
+		{
+			iterator.setCurrentHolder(new ParsedArguments(parser(), iterator.findParentHolderFor(argument)));
+		}
+
+		SortedSet<String> suggestions = new TreeSet<>();
+		return iterator.currentHolder().rootParser().completer().complete(parser(), partOfWord, suggestions, iterator);
 	}
 }

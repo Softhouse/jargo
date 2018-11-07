@@ -12,9 +12,11 @@
  */
 package se.softhouse.common.strings;
 
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
+import static java.lang.System.lineSeparator;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Objects.requireNonNull;
+import static se.softhouse.common.guavaextensions.Preconditions2.check;
+
 import java.io.File;
 import java.text.NumberFormat;
 import java.util.Iterator;
@@ -24,10 +26,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 
-import static java.util.Collections.unmodifiableMap;
-import static java.util.Objects.requireNonNull;
-import static se.softhouse.common.guavaextensions.Preconditions2.check;
-import static se.softhouse.common.strings.StringsUtil.NEWLINE;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Gives you static access to implementations of the {@link Describer} interface.
@@ -141,21 +142,22 @@ public final class Describers
 	{
 		ENABLED_DISABLED
 		{
-			@Override
-			public String describe(Boolean value, Locale inLocale)
-			{
-				return value ? "enabled" : "disabled";
-			}
-		},
-		ON_OFF
-		{
-			@Override
-			public String describe(Boolean value, Locale inLocale)
-			{
-				return value ? "on" : "off";
-			}
-		};
+
+	@Override
+	public String describe(Boolean value, Locale inLocale)
+	{
+		return value ? "enabled" : "disabled";
 	}
+
+	},ON_OFF{
+
+	@Override
+	public String describe(Boolean value, Locale inLocale)
+	{
+		return value ? "on" : "off";
+	}
+
+	};}
 
 	/**
 	 * Describes {@link Number}s in a {@link Locale} sensitive manner using {@link NumberFormat}.
@@ -264,7 +266,7 @@ public final class Describers
 				result.append(entry.getValue());
 				String descriptionForEntry = descriptions.get(key);
 				check(descriptionForEntry != null, "Undescribed key: %s", key);
-				result.append(NEWLINE).append(" ").append(descriptionForEntry).append(NEWLINE);
+				result.append(lineSeparator()).append(" ").append(descriptionForEntry).append(lineSeparator());
 			}
 			return result.toString();
 		}
@@ -273,7 +275,7 @@ public final class Describers
 	/**
 	 * Describes key values in a {@link Map}. Keys are described with
 	 * {@link Describers#toStringDescriber()} and values with {@code valueDescriber}. "=" is used as
-	 * the separator between key and value. {@link StringsUtil#NEWLINE} separates entries.
+	 * the separator between key and value. {@link System#lineSeparator()} separates entries.
 	 */
 	@CheckReturnValue
 	@Nonnull
@@ -286,7 +288,7 @@ public final class Describers
 	 * Describes key values in a {@link Map}. Keys are described with
 	 * {@link Describers#toStringDescriber()} and values with {@code valueDescriber}.
 	 * {@code valueSeparator} is used as the separator between key and value.
-	 * {@link StringsUtil#NEWLINE} separates entries.
+	 * {@link System#lineSeparator()} separates entries.
 	 */
 	@CheckReturnValue
 	@Nonnull
@@ -298,7 +300,7 @@ public final class Describers
 	/**
 	 * Describes key values in a {@link Map}. Keys are described with {@code keyDescriber} and
 	 * values with {@code valueDescriber}.
-	 * "=" is used as the separator between key and value. {@link StringsUtil#NEWLINE} separates
+	 * "=" is used as the separator between key and value. {@link System#lineSeparator()} separates
 	 * entries.
 	 */
 	@CheckReturnValue
@@ -311,7 +313,7 @@ public final class Describers
 	/**
 	 * Describes key values in a {@link Map}. Keys are described with {@code keyDescriber} and
 	 * values with {@code valueDescriber}. {@code valueSeparator} is used as the separator between
-	 * key and value. {@link StringsUtil#NEWLINE} separates entries.
+	 * key and value. {@link System#lineSeparator()} separates entries.
 	 */
 	@CheckReturnValue
 	@Nonnull
@@ -350,7 +352,7 @@ public final class Describers
 
 			while(iterator.hasNext())
 			{
-				result.append(NEWLINE);
+				result.append(lineSeparator());
 				describeEntry(iterator.next(), inLocale, result);
 			}
 			return result.toString();
